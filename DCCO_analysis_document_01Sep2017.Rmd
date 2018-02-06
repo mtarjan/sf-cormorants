@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r, echo=FALSE, warning=FALSE, include=FALSE}
-source('DCCO_analysis_code_02Jun2017.R')
+source('DCCO_pop_analysis_code_5Feb2018.R')
 ```
 
 

@@ -84,7 +84,7 @@ fig2 <- fig2 + scale_linetype_manual(values=c("solid", "twodash"), name = "Pre- 
 fig2 <- fig2 + facet_wrap(~Region, strip.position="top") ##split up sites with facets; choose this option or the one below
 #fig2 <- fig2 + geom_bar(stat="identity", aes(fill=Region)) + scale_fill_manual(values=mycols, name="") ##stacked barplot with sites as the colors. can change the colors to region when have those assigned (but need to summarize data by region first)
 fig2 <- fig2 + ylab("Number of DCCO nests")
-fig2 <- fig2 + scale_x_continuous(breaks=seq(1980, 2016, 2), expand=c(0,0))
+fig2 <- fig2 + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0))
 fig2 <- fig2 + scale_y_continuous(breaks=seq(0, 2500, 200), expand=c(0,0), limits = c(0, NA))
 fig2 <- fig2 + theme_bw()
 fig2 <- fig2 + theme(panel.spacing = unit(0.25, "in"))
@@ -92,7 +92,7 @@ fig2 <- fig2 + theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
 fig2 <- fig2 + theme(axis.title.y = element_text(margin = margin(r=1, unit="line")))
 fig2
 
-png(filename = "fig2.png", units="in", width=6*1.5, height=4*1.5,  res=200);fig2; dev.off()
+#png(filename = "fig2.png", units="in", width=6*1.5, height=4*1.5,  res=200);fig2; dev.off()
 
 
 ##FIGURE 3
@@ -104,7 +104,7 @@ fig3 <- fig3 + geom_smooth(method = "loess")
 fig3 <- fig3 + facet_wrap(~Region, strip.position="top", scales="free") ##split up sites with facets; choose this option or the one below
 #fig2 <- fig2 + geom_bar(stat="identity", aes(fill=Region)) + scale_fill_manual(values=mycols, name="") ##stacked barplot with sites as the colors. can change the colors to region when have those assigned (but need to summarize data by region first)
 fig3 <- fig3 + ylab("Number of DCCO nests")
-fig3 <- fig3 + scale_x_continuous(breaks=seq(1980, 2016, 2), expand=c(0,0), limits=c(1985,2016))
+fig3 <- fig3 + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0), limits=c(1985,2017))
 fig3 <- fig3 + scale_y_continuous(breaks=seq(0, 2500, 200), expand=c(0,0), limits = c(0, NA))
 fig3 <- fig3 + theme_classic()
 fig3 <- fig3 + theme()
@@ -115,7 +115,7 @@ fig3 <- fig3 + theme(axis.title.y = element_text(margin = margin(r=1, unit="line
 fig3 <- fig3 + theme(strip.background = element_rect(fill=NULL, linetype = "blank"))
 fig3
 
-png(filename = "fig3.png", units="in", width=6*1.5, height=4*1.5,  res=200);fig3; dev.off()
+#png(filename = "fig3.png", units="in", width=6*1.5, height=4*1.5,  res=200);fig3; dev.off()
 
 ##FIGURE 3B
 ##number of sites included in regional estimates each year (indicates survey effort??)
@@ -124,7 +124,7 @@ fig3b <- fig3b + geom_point(size=2)
 fig3b <- fig3b + geom_smooth(method = "loess")
 fig3b <- fig3b + facet_wrap(~Region, strip.position="top") ##split up sites with facets; choose this option or the one below
 fig3b <- fig3b + ylab("Number of DCCO colonies counted")
-fig3b <- fig3b + scale_x_continuous(breaks=seq(1980, 2016, 2), expand=c(0,0))
+fig3b <- fig3b + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0))
 fig3b <- fig3b + scale_y_continuous(breaks=seq(0, 100, 1), expand=c(0,0), limits = c(0, NA))
 fig3b <- fig3b + theme_bw()
 fig3b <- fig3b + theme(panel.spacing = unit(0.25, "in"))
@@ -139,7 +139,7 @@ fig3c <- fig3c + geom_point(size=2)
 fig3c <- fig3c + geom_smooth(method = "loess")
 fig3c <- fig3c + facet_wrap(~Region, strip.position="top") ##split up sites with facets; choose this option or the one below
 fig3c <- fig3c + ylab("Number of DCCO counted per colony")
-fig3c <- fig3c + scale_x_continuous(breaks=seq(1980, 2016, 2), expand=c(0,0))
+fig3c <- fig3c + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0))
 fig3c <- fig3c + scale_y_continuous(breaks=seq(0, 2000,100), expand=c(0,0), limits = c(0, NA))
 fig3c <- fig3c + theme_bw()
 fig3c <- fig3c + theme(panel.spacing = unit(0.25, "in"))
@@ -156,14 +156,14 @@ fig4 <- ggplot(data = annual.counts, aes(x = Year, y=total))
 fig4 <- fig4 + geom_point(size=2)
 fig4 <- fig4 + geom_smooth(method = "loess")
 fig4 <- fig4 + ylab("Number of DCCO nests at non-bridge sites")
-fig4 <- fig4 + scale_x_continuous(breaks=seq(1980, 2016, 2), expand=c(0,0))
+fig4 <- fig4 + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0))
 fig4 <- fig4 + scale_y_continuous(breaks=seq(0, 5500, 200), expand=c(0,0), limits = c(0, NA))
 fig4 <- fig4 + theme_bw()
 fig4 <- fig4 + theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
 fig4 <- fig4 + theme(axis.title.y = element_text(margin = margin(r=1, unit="line")))
 fig4
 
-png(filename = "fig4.png", units="in", width=6*1.5, height=4*1.5,  res=200);fig4; dev.off()
+#png(filename = "fig4.png", units="in", width=6*1.5, height=4*1.5,  res=200);fig4; dev.off()
 
 
 ##plot of change in dcco numbers (slope following bridge construction) with distance from bridge
@@ -190,7 +190,7 @@ for (j in 1:length(unique(counts$Colony))) {
 
 out<-out[-which(is.na(out$slope)),] ##exclude sites for which slope could not be calculated (too few sites)
 
-ggplot(data=out, aes(x = Region, y = slope)) + geom_boxplot() + ylab("Change in DCCO counts 2002-2016")
+ggplot(data=out, aes(x = Region, y = slope)) + geom_boxplot() + ylab("Change in DCCO counts 2002-2017")
 
 ##plot sites on a map
 #map1<-ggplot(data = counts, aes(x = UTM.Easting, y = UTM.Northing)) + geom_point(aes(size=nests))
@@ -328,7 +328,7 @@ M6<-gam(Count ~ s(Year, by=Colony) + Colony,
 #        family = poisson)
 
 #AIC(M0, M1, M2, M3, M4, M5, M6, M7, M8, M9)
-AIC(M0, M1, M2, M3)
+AIC(M0, M1, M3)
 
 ##quasi models to deal with overdispersion
 M9q<-gam(Count ~ s(Year, by=Colony) + Colony + day + Survey.type,
@@ -340,23 +340,23 @@ M9q<-gam(Count ~ s(Year, by=Colony) + Colony + day + Survey.type,
 #plot(M9$model$Year, M9$fitted.values)
 
 ##diagnostic plots
-E9<-resid(M9, type="pearson")
-F9<-fitted(M9)
-plot(x=F9, y=E9); abline(h=0)
+E3<-resid(M3, type="pearson")
+F3<-fitted(M3)
+plot(x=F3, y=E3); abline(h=0)
 
 ##residuals for every colony
-xyplot(E9~F9 | M9$model$Colony)
+xyplot(E3~F3 | M3$model$Colony)
 
 ##histogram of residuals
-hist(E9)
+hist(E3)
 
 ##plot residuals against covariates
-plot(x=M9$model$day, y=E9)
+plot(x=M3$model$day, y=E3)
 
-xyplot(E9~M9$model$day | M9$model$Colony)
+xyplot(E3~M3$model$day | M3$model$Colony)
 
 ##compute autocorrelation
-ac<-tapply(E9, FUN = acf, INDEX = M9$model$Colony, plot=F, lag.max=5)
+ac<-tapply(E3, FUN = acf, INDEX = M3$model$Colony, plot=F, lag.max=5)
 
 for (j in 1:length(ac)) {
   if (j ==1) {
@@ -387,7 +387,7 @@ xyplot(ac.all ~ K | factor(ID),
        })
 
 #Examine overdispersion 
-sum(E9^2) / (M9$df.res)
+sum(E3^2) / (M3$df.res)
 
 ##GAMM (poptrend)
 ##poptrend
@@ -414,7 +414,7 @@ checkFit(trFit)
 plot(trFit, ciBase=mean, main=regions[j])
 #summary(trFit)
 ## Check the estimated percent change from year 8 to 25
-change(trFit, 2002, 2016)
+change(trFit, 2002, 2017)
 
 ##plot predicted pop change for each region
 par(mfrow = c(2,2), bty="L", mar=c(4,4,4,2))
