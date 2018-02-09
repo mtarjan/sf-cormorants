@@ -25,7 +25,7 @@ counts<-subset(counts, Count.type != "Seasonal total" & Region != "" & Region !=
 ##EXPAND DATA
 
 ##format date
-counts$Survey.Date<-as.Date(counts$Survey.Date, "%m/%d/%Y")
+counts$Survey.Date<-as.Date(counts$Survey.Date, "%Y-%m-%d")
 
 library(lubridate)
 ##add day of year
@@ -57,8 +57,13 @@ fig1
 ##colors for bar plots
 mycols<-c("#E7298A", "#771155", "#114477", "#771122", "#DDDD77", "#1B9E77", "#66A61E","#7570B3", "#A6761D", "#4477AA", "#D95F02", "#E6AB02", "#666666")
 
+##first summarize by colony and year to get average if there are multiple counts from different agencies for one year
+##can also alter this code to subset by survey type
+mean.colony.counts<-counts %>% group_by(Colony, Year, Region) %>% summarise(mean.count=round(mean(Count),0)) %>% data.frame()
+
 ##summarize data by region
-regional.counts<-counts %>% group_by(Region, Year) %>% summarise(total=sum(Count)) %>% data.frame()
+#regional.counts<-counts %>% group_by(Region, Year) %>% summarise(total=sum(Count)) %>% data.frame()
+regional.counts<-mean.colony.counts %>% group_by(Region, Year) %>% summarise(total=sum(mean.count)) %>% data.frame()
 
 regional.counts$time.period<-regional.counts$Year
 regional.counts$time.period[which(regional.counts$time.period<=2002)]<-"pre"
@@ -105,7 +110,7 @@ fig3 <- fig3 + facet_wrap(~Region, strip.position="top", scales="free") ##split 
 #fig2 <- fig2 + geom_bar(stat="identity", aes(fill=Region)) + scale_fill_manual(values=mycols, name="") ##stacked barplot with sites as the colors. can change the colors to region when have those assigned (but need to summarize data by region first)
 fig3 <- fig3 + ylab("Number of DCCO nests")
 fig3 <- fig3 + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0), limits=c(1985,2017))
-fig3 <- fig3 + scale_y_continuous(breaks=seq(0, 2500, 200), expand=c(0,0), limits = c(0, NA))
+fig3 <- fig3 + scale_y_continuous(breaks=seq(0, 2500, 100), expand=c(0,0), limits = c(0, NA))
 fig3 <- fig3 + theme_classic()
 fig3 <- fig3 + theme()
 #fig3 <- fig3 + theme(panel.border = element_rect(color="black", fill=NA))
@@ -116,6 +121,47 @@ fig3 <- fig3 + theme(strip.background = element_rect(fill=NULL, linetype = "blan
 fig3
 
 #png(filename = "fig3.png", units="in", width=6*1.5, height=4*1.5,  res=200);fig3; dev.off()
+
+##FIGURE 3A
+##loess on log(count)
+fig3a <- ggplot(data = subset(regional.counts, subset = Region !=""), aes(x = Year, y=log(total)))
+fig3a <- fig3a + geom_point(size=2)
+fig3a <- fig3a + geom_smooth(method = "loess")
+fig3a <- fig3a + facet_wrap(~Region, strip.position="top", scales="free") 
+fig3a <- fig3a + ylab("Number of DCCO nests")
+fig3a <- fig3a + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0), limits=c(1985,2017))
+#fig3 <- fig3 + scale_y_continuous(breaks=seq(0, 2500, 100), expand=c(0,0), limits = c(0, NA))
+fig3a <- fig3a + theme_classic()
+fig3a <- fig3a + theme()
+#fig3 <- fig3 + theme(panel.border = element_rect(color="black", fill=NA))
+fig3a <- fig3a + theme(panel.spacing = unit(0.25, "in"))
+fig3a <- fig3a + theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
+fig3a <- fig3a + theme(axis.title.y = element_text(margin = margin(r=1, unit="line")))
+fig3a <- fig3a + theme(strip.background = element_rect(fill=NULL, linetype = "blank"))
+fig3a
+
+##find breaks according to loess on log(counts)
+out<-dim(0)
+for (j in 1:length(unique(regional.counts$Region))) {
+  dat.temp<-subset(regional.counts, Region==unique(regional.counts$Region)[j] & total >0)
+  loess.temp<-loess(formula = log(total) ~ Year, data = dat.temp)
+  predict.temp<-predict(loess.temp)
+  #curve.pts<-cbind(dat.temp$Year, predict.temp)
+  
+  dy <- diff(predict.temp) 
+  
+  cutoff<-dim(0)
+  for (i in 6:(length(dy)-5)) {
+    if (t.test(x=dy[i:(i-4)], y=dy[(i+1):(i+5)])$p.value<0.1) {
+      cutoff<-c(cutoff, dat.temp$Year[i])
+    }
+  }
+  cutoff<-round(median(cutoff),0)
+  #print(cutoff)
+  out<-rbind(out, c(as.character(unique(regional.counts$Region)[j]), cutoff))
+}
+cutoff<-data.frame(out)
+cutoff$X2<-as.numeric(as.character(cutoff$X2))
 
 ##FIGURE 3B
 ##number of sites included in regional estimates each year (indicates survey effort??)
@@ -265,6 +311,63 @@ ggplot(data=out, aes(x = Region, y = slope)) + geom_boxplot() + ylab("Change in 
 
 ##ANALYZE DATA
 
+##POISSON REGRESSION: Gerry's suggested analysis; Manuwal 2001. Biology and Conservation of the Common Murre. USGS
+##1) poisson regression of count sums (ie regional counts)
+##2) average poisson regression; averaged from multiple regressions on counts of individual colony counts. The average regression can have weights for each colony regression (weighted by population size and survey effort)
+##3) compare these two to see if they tell the same story
+
+##table with slope of ln(N)- estimate, SE, lower 95% CI, upper, p-value, % annual increase (estimate, upper and lower CI). for regressions across different time periods by region/site
+
+##FIGURE 6
+##poisson regression of count sums (ie regional counts)
+
+for (j in 1:length(unique(regional.counts$Region))) {
+  region.temp<-unique(regional.counts$Region)[j]
+  dat.temp<-subset(regional.counts, subset = Region ==region.temp) ##take regional data only
+  
+  ##get equations for two separate pieces
+  cutoff.temp<-cutoff$X2[which(as.character(cutoff$X1)==as.character(region.temp))]
+  lm1<-lm(formula = log(total)~Year, data=subset(dat.temp, Year < cutoff.temp & total>0))
+  lm2<-lm(formula = log(total)~Year, data=subset(dat.temp, Year >= cutoff.temp & total >0))
+  
+  ##if a coefficient is too close to 0, make it closest number possible
+  #if (coefficients(lm1)[1]<=-745) {
+  #  coef.lm1.1<- -745
+  #} else {
+  #  coef.lm1.1<-coefficients(lm1)[1]
+  #}
+  
+  ##get functions from equations
+  fun1<-function(x) exp(coefficients(lm1)[1])*exp(coefficients(lm1)[2]*x)
+  fun2<-function(x) exp(coefficients(lm2)[1])*exp(coefficients(lm2)[2]*x)
+  
+  ##make plot of counts and both equations; list r and p values on plot
+  fig6 <- ggplot(data = dat.temp, aes(x = Year, y=total))
+  fig6 <- fig6 + geom_point(size=2)
+  fig6 <- fig6 + facet_wrap(~Region, strip.position="top", scales="free") ##split up sites with facets
+  fig6 <- fig6 + ylab("Number of DCCO nests")
+  fig6 <- fig6 + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0), limits=c(1985,2017))
+  fig6 <- fig6 + scale_y_continuous(breaks=seq(0, 2500, 100), expand=c(0,0), limits = c(0, NA))
+  fig6 <- fig6 + stat_function(fun=fun1, xlim=c(1985, cutoff.temp-1), size=1.25)
+  fig6 <- fig6 + stat_function(fun=fun2, xlim=c(cutoff.temp, 2017), size=1.25)
+  fig6 <- fig6 + theme_classic()
+  fig6 <- fig6 + theme(panel.spacing = unit(0.25, "in"))
+  fig6 <- fig6 + theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
+  fig6 <- fig6 + theme(axis.title.y = element_text(margin = margin(r=1, unit="line")))
+  fig6 <- fig6 + theme(strip.background = element_rect(fill=NULL, linetype = "blank"))
+  fig6 <- fig6 + geom_text(aes(x=2008, y=max(dat.temp$total)/7, label="time period     r-square     p-value"))
+  fig6 <- fig6 + geom_text(aes(x=2008, y=max(dat.temp$total)/10, label=str_c("1985-", cutoff.temp-1, "          ", round(summary(lm1)$r.squared,2),  "          ", round(coefficients(summary(lm1))[2,4], 3))))
+  fig6 <- fig6 + geom_text(aes(x=2008, y=(max(dat.temp$total)/17), label=str_c(cutoff.temp, "-2017          ", round(summary(lm2)$r.squared,2),  "          ", round(coefficients(summary(lm2))[2,4], 3))))
+  #fig6 <- fig6 + geom_text(aes(x=2008, y=max(dat.temp$total)/10, label=str_c("time period 1985-", cutoff.temp-1, "; r-squared = ", round(summary(lm1)$r.squared,2),  "; p = ", round(coefficients(summary(lm1))[2,4], 3))))
+  #fig6 <- fig6 + geom_text(aes(x=2008, y=(max(dat.temp$total)/17), label=str_c("time period ", cutoff.temp, "-2017; r-squared = ", round(summary(lm2)$r.squared,2),  "; p = ", round(coefficients(summary(lm2))[2,4], 3))))
+  fig6 <- fig6 + theme(text = element_text(size=16))
+  fig6
+  
+  ##save the plot
+  #assign(str_c("fig6.", as.character(region.temp)), fig6) ##save plot for that region ##this approach doesn't work because the variables (eg lm1) get updated so the plot call with plot the most recent one, not the variable that existed when it was saved
+  png(filename = str_c("fig6.",region.temp, ".png"), units="in", width=6*1.5, height=4*1.5,  res=200);print(fig6); dev.off()
+}
+
 ##this section goes through:
 ##1) fit a basic model
 ##2) see if assumptions are met (about error distrib, autocorrelation, etc)
@@ -279,6 +382,8 @@ ggplot(data=out, aes(x = Region, y = slope)) + geom_boxplot() + ylab("Change in 
 ##LINEAR MODELS WITH TIME BREAKS
 
 ##GAM
+##code from Shadish et al. 2014. Using generalized additive (mixed) models to analyze single case designs. (in Mendeley)
+
 library(mgcv)
 library(lattice) ##for plotting
 
@@ -311,52 +416,53 @@ M6<-gam(Count ~ s(Year, by=Colony) + Colony,
         data = counts,
         family = poisson)
 
-#M7<-gam(Count ~ s(Year, by=Colony) + Colony + day,
-#        data = counts,
-#        family = poisson)
+M7<-gam(Count ~ s(Year, by=Colony) + Colony + day,
+        data = counts,
+        family = poisson)
 
-#M8<-gam(Count ~ s(Year, by=Colony) + Colony + day + time.period,
-#        data = counts,
-#        family = poisson)
+M8<-gam(Count ~ s(Year, by=Colony) + Colony + day + time.period,
+        data = counts,
+        family = poisson)
 
-#M9<-gam(Count ~ s(Year, by=Colony) + Colony + day + Survey.type,
-#        data = counts,
-#        family = poisson)
+M9<-gam(Count ~ s(Year, by=Colony) + Colony + day + Survey.type,
+        data = counts,
+        family = poisson)
 
 #M10<-gam(Count ~ s(Year, by=Colony) + Colony + day + Survey.type,
 #        data = subset(counts, Region=="North Bay"),
 #        family = poisson)
 
-#AIC(M0, M1, M2, M3, M4, M5, M6, M7, M8, M9)
-AIC(M0, M1, M3)
+AIC(M0, M1, M2, M3, M4, M5, M6, M7, M8, M9)
+#AIC(M0, M1, M3)
+##look for lowest AIC
 
 ##quasi models to deal with overdispersion
 M9q<-gam(Count ~ s(Year, by=Colony) + Colony + day + Survey.type,
          data = counts,
          family = quasipoisson)
 
-##plot model M9
-#P9<-predict(M9, se.fit = T)
-#plot(M9$model$Year, M9$fitted.values)
+##plot model M8
+P8<-predict(M8, se.fit = T)
+plot(M8$model$Year, M8$fitted.values)
 
 ##diagnostic plots
-E3<-resid(M3, type="pearson")
-F3<-fitted(M3)
-plot(x=F3, y=E3); abline(h=0)
+E8<-resid(M8, type="pearson")
+F8<-fitted(M8)
+plot(x=F8, y=E8); abline(h=0)
 
 ##residuals for every colony
-xyplot(E3~F3 | M3$model$Colony)
+xyplot(E8~F8 | M8$model$Colony)
 
 ##histogram of residuals
-hist(E3)
+hist(E8)
 
 ##plot residuals against covariates
-plot(x=M3$model$day, y=E3)
+plot(x=M8$model$day, y=E8)
 
-xyplot(E3~M3$model$day | M3$model$Colony)
+xyplot(E8~M8$model$day | M8$model$Colony)
 
 ##compute autocorrelation
-ac<-tapply(E3, FUN = acf, INDEX = M3$model$Colony, plot=F, lag.max=5)
+ac<-tapply(E8, FUN = acf, INDEX = M8$model$Colony, plot=F, lag.max=5)
 
 for (j in 1:length(ac)) {
   if (j ==1) {
@@ -387,7 +493,7 @@ xyplot(ac.all ~ K | factor(ID),
        })
 
 #Examine overdispersion 
-sum(E3^2) / (M3$df.res)
+sum(E8^2) / (M8$df.res)
 
 ##GAMM (poptrend)
 ##poptrend
