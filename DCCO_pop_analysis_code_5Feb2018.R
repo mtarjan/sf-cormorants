@@ -106,7 +106,7 @@ fig3 <- ggplot(data = subset(regional.counts, subset = Region !=""), aes(x = Yea
 #fig2 <- fig2 + geom_bar(stat="identity")
 fig3 <- fig3 + geom_point(size=2)
 fig3 <- fig3 + geom_smooth(method = "loess")
-fig3 <- fig3 + facet_wrap(~Region, strip.position="top", scales="free") ##split up sites with facets; choose this option or the one below
+fig3 <- fig3 + facet_wrap(~Region, strip.position="top", scales="free", ncol = 2) ##split up sites with facets; choose this option or the one below
 #fig2 <- fig2 + geom_bar(stat="identity", aes(fill=Region)) + scale_fill_manual(values=mycols, name="") ##stacked barplot with sites as the colors. can change the colors to region when have those assigned (but need to summarize data by region first)
 fig3 <- fig3 + ylab("Number of DCCO nests")
 fig3 <- fig3 + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0), limits=c(1985,2017))
@@ -327,7 +327,7 @@ fig3d
 ##linear regression of log count sums (ie regional counts)
 
 ##use my regional counts
-regional.counts<-regional.counts.org
+#regional.counts<-regional.counts.org
 
 for (j in 1:length(unique(regional.counts$Region))) {
   region.temp<-unique(regional.counts$Region)[j]
@@ -467,116 +467,116 @@ for (j in 1:length(unique(regional.counts$Region))) {
 ##GAM
 ##code from Shadish et al. 2014. Using generalized additive (mixed) models to analyze single case designs. (in Mendeley)
 
-library(mgcv)
-library(lattice) ##for plotting
+#library(mgcv)
+#library(lattice) ##for plotting
 
-M0<-gam(Count ~ Year + Colony,
-        data = counts,
-        family = poisson)
+#M0<-gam(Count ~ Year + Colony,
+#        data = counts,
+#        family = poisson)
 
-M1<-gam(Count ~ s(Year) + Colony,
-        data = counts,
-        family = poisson)
+#M1<-gam(Count ~ s(Year) + Colony,
+#        data = counts,
+#        family = poisson)
 
-M2<-gam(Count ~ s(Year) + Colony + day,
-        data = counts,
-        family = poisson)
+#M2<-gam(Count ~ s(Year) + Colony + day,
+#        data = counts,
+#        family = poisson)
 
-M3<-gam(Count ~ s(Year) + Colony + Survey.type,
-        data = counts,
-        family = poisson)
+#M3<-gam(Count ~ s(Year) + Colony + Survey.type,
+#        data = counts,
+#        family = poisson)
 
-M4<-gam(Count ~ s(Year) + Colony + day + Survey.type,
-        data = counts,
-        family = poisson)
+#M4<-gam(Count ~ s(Year) + Colony + day + Survey.type,
+#        data = counts,
+#        family = poisson)
 
-M5<-gam(Count ~ s(Year) + Colony + day + time.period,
-        data = counts,
-        family = poisson)
+#M5<-gam(Count ~ s(Year) + Colony + day + time.period,
+#        data = counts,
+#        family = poisson)
 
 ##interactions; allow for separate trends for each site
-M6<-gam(Count ~ s(Year, by=Colony) + Colony,
-        data = counts,
-        family = poisson)
+#M6<-gam(Count ~ s(Year, by=Colony) + Colony,
+#        data = counts,
+#        family = poisson)
 
-M7<-gam(Count ~ s(Year, by=Colony) + Colony + day,
-        data = counts,
-        family = poisson)
+#M7<-gam(Count ~ s(Year, by=Colony) + Colony + day,
+#        data = counts,
+#        family = poisson)
 
-M8<-gam(Count ~ s(Year, by=Colony) + Colony + day + time.period,
-        data = counts,
-        family = poisson)
+#M8<-gam(Count ~ s(Year, by=Colony) + Colony + day + time.period,
+#        data = counts,
+#        family = poisson)
 
-M9<-gam(Count ~ s(Year, by=Colony) + Colony + day + Survey.type,
-        data = counts,
-        family = poisson)
+#M9<-gam(Count ~ s(Year, by=Colony) + Colony + day + Survey.type,
+#        data = counts,
+#        family = poisson)
 
 #M10<-gam(Count ~ s(Year, by=Colony) + Colony + day + Survey.type,
 #        data = subset(counts, Region=="North Bay"),
 #        family = poisson)
 
-AIC(M0, M1, M2, M3, M4, M5, M6, M7, M8, M9)
+#AIC(M0, M1, M2, M3, M4, M5, M6, M7, M8, M9)
 #AIC(M0, M1, M3)
 ##look for lowest AIC
 
 ##quasi models to deal with overdispersion
-M9q<-gam(Count ~ s(Year, by=Colony) + Colony + day + Survey.type,
-         data = counts,
-         family = quasipoisson)
+#M9q<-gam(Count ~ s(Year, by=Colony) + Colony + day + Survey.type,
+#         data = counts,
+#         family = quasipoisson)
 
 ##plot model M8
-P8<-predict(M8, se.fit = T)
-plot(M8$model$Year, M8$fitted.values)
+#P8<-predict(M8, se.fit = T)
+#plot(M8$model$Year, M8$fitted.values)
 
 ##diagnostic plots
-E8<-resid(M8, type="pearson")
-F8<-fitted(M8)
-plot(x=F8, y=E8); abline(h=0)
+#E8<-resid(M8, type="pearson")
+#F8<-fitted(M8)
+#plot(x=F8, y=E8); abline(h=0)
 
 ##residuals for every colony
-xyplot(E8~F8 | M8$model$Colony)
+#xyplot(E8~F8 | M8$model$Colony)
 
 ##histogram of residuals
-hist(E8)
+#hist(E8)
 
 ##plot residuals against covariates
-plot(x=M8$model$day, y=E8)
+#plot(x=M8$model$day, y=E8)
 
-xyplot(E8~M8$model$day | M8$model$Colony)
+#xyplot(E8~M8$model$day | M8$model$Colony)
 
 ##compute autocorrelation
-ac<-tapply(E8, FUN = acf, INDEX = M8$model$Colony, plot=F, lag.max=5)
+#ac<-tapply(E8, FUN = acf, INDEX = M8$model$Colony, plot=F, lag.max=5)
 
-for (j in 1:length(ac)) {
-  if (j ==1) {
-    ac.all<-ac[[j]]$acf
-    K<-c(1:length(ac.all))
-    ID<-rep(j, length(ac.all))
-  } else {
-    ac.all<-c(ac.all, ac[[j]]$acf)
-    K<-c(K, 1:length(ac[[j]]$acf))
-    ID<-c(ID, rep(j, length(ac[[j]]$acf)))
-  }
-}
+#for (j in 1:length(ac)) {
+#  if (j ==1) {
+#    ac.all<-ac[[j]]$acf
+#    K<-c(1:length(ac.all))
+#    ID<-rep(j, length(ac.all))
+#  } else {
+#    ac.all<-c(ac.all, ac[[j]]$acf)
+#    K<-c(K, 1:length(ac[[j]]$acf))
+#    ID<-c(ID, rep(j, length(ac[[j]]$acf)))
+#  }
+#}
 
-#K<-rep(0:5, length(ac))
-#ID<-rep(1:length(ac), each=6)
-cbind(ac.all,K,ID)
+##K<-rep(0:5, length(ac))
+##ID<-rep(1:length(ac), each=6)
+#cbind(ac.all,K,ID)
 
 ##create lattice plot to look at time lag
-xyplot(ac.all ~ K | factor(ID),
-       ylim=c(-1,1),
-       ylab= "acf",
-       xlab = "Time lag",
-       panel = function (x,y) {
-         panel.lines(x,y,type="h", col=1)
-         panel.abline(h = 0)
-         panel.abline(h = 1.96 / sqrt(31), lty=2)
-         panel.abline(h = -1.96/ sqrt(31), lty=2)
-       })
+#xyplot(ac.all ~ K | factor(ID),
+#       ylim=c(-1,1),
+#       ylab= "acf",
+#       xlab = "Time lag",
+#       panel = function (x,y) {
+#         panel.lines(x,y,type="h", col=1)
+#         panel.abline(h = 0)
+#         panel.abline(h = 1.96 / sqrt(31), lty=2)
+#         panel.abline(h = -1.96/ sqrt(31), lty=2)
+#       })
 
 #Examine overdispersion 
-sum(E8^2) / (M8$df.res)
+#sum(E8^2) / (M8$df.res)
 
 ##GAMM (poptrend)
 ##poptrend

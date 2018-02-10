@@ -2,7 +2,7 @@
 title: "Double-Crested Cormorant Populations in San Francisco Bay from 1985--2017"
 subtitle: "Draft of Analyses"
 author: "Max Tarjan"
-date: "`r format(Sys.Date(), "%B %d, %Y")`"
+date: "`r Sys.Date()`"
 output:
   word_document:
     reference_docx: DCCO_format_doc.docx
@@ -23,3 +23,44 @@ source('DCCO_pop_analysis_code_5Feb2018.R')
 This manuscript describes options for analyzing trends in DCCO populations in the San Francisco Bay Area from 1985--2017.
 
 # Methods
+Following the methods of Manuwal et al (2000), I plotted raw regional counts using loess and standard error shading. I identified which regions followed exponential growth and which followed logistic growth by visualizing the ln-transformed regional counts. For the regions of the Bridges and South Farallone Islands, I identified subsets of years where data followed distinct trajectories and fit independent linear models for each data subset. I fit logistic growth equations for the regions of the North Bay, Outer Coast, and South Bay.
+
+# Figures
+```{r, echo=FALSE}
+knitr::include_graphics(path="C:/Users/max/Desktop/Tarjan/Science/GIS/DCCO_GIS/DCCO_sites_map_28Aug2017.jpg")
+```
+Fig 1. Map of DCCO nesting sites from 1985-2016 in the San Francisco Bay Area.
+
+
+```{r, echo=FALSE, fig.height=8, fig.width=7.5, warning=FALSE}
+print(fig3)
+```
+Fig 2. Counts of DCCO nests in each region around San Francisco Bay from `r min(counts$Year)` -- `r max(counts$Year)`. Points show raw counts summed across sites for each region. Data are plotted with a loess curve and standard error shading.
+
+```{r, echo=FALSE}
+knitr::include_graphics(path="Fig6.Bridges.png")
+```
+Fig 3. Regional counts over time in the Bridge region with fitted model (fitted as linear model on ln-transformed data).
+
+```{r, echo=FALSE}
+knitr::include_graphics(path="Fig6.North Bay.png")
+```
+Fig 4. Regional counts over time in the North Bay region with fitted logistic model.
+
+```{r, echo=FALSE}
+knitr::include_graphics(path="Fig6.Outer Coast.png")
+```
+Fig 5. Regional counts over time in the Outer Coast region with fitted logistic model.
+
+```{r, echo=FALSE}
+knitr::include_graphics(path="Fig6.South Bay.png")
+```
+Fig 6. Regional counts over time in the South Bay region with fitted logistic model.
+
+```{r, echo=FALSE}
+knitr::include_graphics(path="Fig6.South Farallon Islands.png")
+```
+Fig 7. Regional counts over time in the South Farallon Islands region with fitted model (fitted as linear model on ln-transformed data).
+
+##Works Cited
+Manuwal, D. A., Carter, H. R., Zimmerman, T. S., & Orthmeyer, D. L. (2000). Biology and Conservation of the Common Murre in California, Oregon, Washington, and British Columbia Volume 1: Natural History and Population Trends. Information and Technology Report (Vol. 1).
