@@ -128,7 +128,7 @@ fig3a <- ggplot(data = subset(regional.counts, subset = Region !=""), aes(x = Ye
 fig3a <- fig3a + geom_point(size=2)
 fig3a <- fig3a + geom_smooth(method = "loess")
 fig3a <- fig3a + facet_wrap(~Region, strip.position="top", scales="free") 
-fig3a <- fig3a + ylab("Number of DCCO nests")
+fig3a <- fig3a + ylab("ln(Number of DCCO nests)")
 fig3a <- fig3a + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0), limits=c(1985,2017))
 #fig3 <- fig3 + scale_y_continuous(breaks=seq(0, 2500, 100), expand=c(0,0), limits = c(0, NA))
 fig3a <- fig3a + theme_classic()
@@ -246,27 +246,32 @@ ggplot(data=out, aes(x = Region, y = slope)) + geom_boxplot() + ylab("Change in 
 #par(mfrow=c(1,length(unique(counts$time.period))))
 
 ##LOAD PHIL'S REGIONAL COUNTS
+phil.data<-read.csv("C:/Users/max/Desktop/Tarjan/Science/DCCO/DCCO_regional_counts_Phil_12Jul2017.csv")
+phil.data<-tidyr::gather(phil.data, "Year", "Count", 2:ncol(phil.data)) ##rearrange data
+phil.data$Year<-as.numeric(str_sub(phil.data$Year, 2, 5)) ##format year (remove space)
+phil.data<-subset(phil.data, subset = Count!='NA')
+colnames(phil.data)<-c("Region", "Year", "total")
+
 #data<-read.csv("DCCO_regional_counts_Phil_12Jul2017.csv")
 #data.org<-data
 #data<-tidyr::gather(data, "Year", "Count", 2:ncol(data)) ##rearrange data
 #data$Year<-as.numeric(str_sub(data$Year, 2, 5)) ##format year (remove space)
 #data<-subset(data, subset = Count!='NA')
 
-#fig3 <- ggplot(data = subset(data, subset = Region !="All Colonies"), aes(x = Year, y=Count))
-#fig3 <- fig3 + geom_point(size=2)
-#fig3 <- fig3 + geom_smooth(method = "loess")
-#fig3 <- fig3 + facet_wrap(~Region, strip.position="top", scales="free_y") ##split up sites with facets; choose this option or the one below
-#fig2 <- fig2 + geom_bar(stat="identity", aes(fill=Region)) + scale_fill_manual(values=mycols, name="") ##stacked barplot with sites as the colors. can change the colors to region when have those assigned (but need to summarize data by region first)
-#fig3 <- fig3 + ylab("Number of DCCO nests")
-#fig3 <- fig3 + scale_x_continuous(breaks=seq(1980, 2016, 2), expand=c(0,0))
-#fig3 <- fig3 + scale_y_continuous(breaks=seq(0, 3500, 200), expand=c(0,0), limits = c(0, NA))
-#fig3 <- fig3 + theme_bw()
-#fig3 <- fig3 + theme(panel.spacing = unit(0.25, "in"))
-#fig3 <- fig3 + theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
-#fig3 <- fig3 + theme(axis.title.y = element_text(margin = margin(r=1, unit="line")))
-#fig3
+fig3d <- ggplot(data = subset(phil.data, subset = Region !="All Colonies"), aes(x = Year, y=total))
+fig3d <- fig3d + geom_point(size=2)
+fig3d <- fig3d + geom_smooth(method = "loess")
+fig3d <- fig3d + facet_wrap(~Region, strip.position="top", scales="free_y") ##split up sites with facets; choose this option or the one below
+fig3d <- fig3d + ylab("Number of DCCO nests")
+fig3d <- fig3d + scale_x_continuous(breaks=seq(1980, 2016, 2), expand=c(0,0))
+fig3d <- fig3d + scale_y_continuous(breaks=seq(0, 3500, 200), expand=c(0,0), limits = c(0, NA))
+fig3d <- fig3d + theme_bw()
+fig3d <- fig3d + theme(panel.spacing = unit(0.25, "in"))
+fig3d <- fig3d + theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
+fig3d <- fig3d + theme(axis.title.y = element_text(margin = margin(r=1, unit="line")))
+fig3d
 
-#png(filename = "fig3a.png", units="in", width=6*1.5, height=4*1.5,  res=200);fig3; dev.off()
+#png(filename = "fig3.png", units="in", width=6*1.5, height=4*1.5,  res=200);fig3; dev.off()
 
 ##PLOT EFFECT OF BRIDGE POP ON NON-BRIDGE POP
 #data.test<-tidyr::spread(data, value = Count, key = Region)
@@ -319,7 +324,10 @@ ggplot(data=out, aes(x = Region, y = slope)) + geom_boxplot() + ylab("Change in 
 ##table with slope of ln(N)- estimate, SE, lower 95% CI, upper, p-value, % annual increase (estimate, upper and lower CI). for regressions across different time periods by region/site
 
 ##FIGURE 6
-##poisson regression of count sums (ie regional counts)
+##linear regression of log count sums (ie regional counts)
+
+##use my regional counts
+regional.counts<-regional.counts.org
 
 for (j in 1:length(unique(regional.counts$Region))) {
   region.temp<-unique(regional.counts$Region)[j]
@@ -330,16 +338,54 @@ for (j in 1:length(unique(regional.counts$Region))) {
   lm1<-lm(formula = log(total)~Year, data=subset(dat.temp, Year < cutoff.temp & total>0))
   lm2<-lm(formula = log(total)~Year, data=subset(dat.temp, Year >= cutoff.temp & total >0))
   
-  ##if a coefficient is too close to 0, make it closest number possible
-  #if (coefficients(lm1)[1]<=-745) {
-  #  coef.lm1.1<- -745
-  #} else {
-  #  coef.lm1.1<-coefficients(lm1)[1]
-  #}
+  ##make an equation for logistic growth
+  model.log<-nls(total~K/(1+((K-No)/No)*exp(-r*(Year-1986))),
+              start=list(K=800,No=1,r=0.5),data=dat.temp,trace=F)
+  model.log.trans<-nls(log(total)~K/(1+((K-No)/No)*exp(-r*(Year-1986))),
+                       start=list(K=6.5,No=0.03,r=0.4),data=subset(dat.temp, total>0),trace=F)
+  
+  #model.log.trans<-nls(log(total)~log(K)-log(1+((K-No)/No)*exp(-r*(Year-1986))),
+   #                    start=list(K=800,No=0.3,r=0.45),data=subset(dat.temp, total>0),trace=F)
+  
   
   ##get functions from equations
   fun1<-function(x) exp(coefficients(lm1)[1])*exp(coefficients(lm1)[2]*x)
   fun2<-function(x) exp(coefficients(lm2)[1])*exp(coefficients(lm2)[2]*x)
+  
+  fun1.lm<-function(x) coefficients(lm1)[2]*x+coefficients(lm1)[1]
+  fun2.lm<-function(x) coefficients(lm2)[2]*x+coefficients(lm2)[1]
+  
+  #No<-0.03
+  No<-coefficients(model.log)[2]
+  #K<-6.5
+  K<-coefficients(model.log)[1]
+  #r<-0.4
+  r<-coefficients(model.log)[3]
+  fun.log<- function(x) K/(1+((K-No)/No)*exp(-r*(x-1986)))
+  
+  ##function to be plotted on log scale
+  No.trans<-coefficients(model.log.trans)[2]
+  K.trans<-coefficients(model.log.trans)[1]
+  r.trans<-coefficients(model.log.trans)[3]
+  fun.log.trans<- function(x) K.trans/(1+((K.trans-No.trans)/No.trans)*exp(-r.trans*(x-1986)))
+  
+  ##work in progress. function to be calculated on log scale and then backtransformed to be plotted on regular scale
+  #K<-800
+  #No<-.2
+  #r<-0.45
+  #fun.log.backtrans<- function(x) log(K)-log(1+((K-No)/No)*exp(-r*(x-1986)))
+  
+  #fun.log.backtrans(1998); fun.log.backtrans(2016)
+  
+  #fig6a <- ggplot(data = dat.temp, aes(x = Year, y=log(total)))
+  #fig6a <- fig6a + geom_point(size=2)
+  #fig6a <- fig6a + stat_function(fun=fun.log.backtrans)
+  #fig6a
+  
+  ##calculate r-square
+  RSS.p <- sum(residuals(model.log)^2) ##residual sum of squares
+  TSS <- sum((dat.temp$total - mean(dat.temp$total))^2)  # Total sum of squares
+  log.rsq<-round(1 - (RSS.p/TSS),2)  # R-squared measure
   
   ##make plot of counts and both equations; list r and p values on plot
   fig6 <- ggplot(data = dat.temp, aes(x = Year, y=total))
@@ -348,24 +394,61 @@ for (j in 1:length(unique(regional.counts$Region))) {
   fig6 <- fig6 + ylab("Number of DCCO nests")
   fig6 <- fig6 + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0), limits=c(1985,2017))
   fig6 <- fig6 + scale_y_continuous(breaks=seq(0, 2500, 100), expand=c(0,0), limits = c(0, NA))
-  fig6 <- fig6 + stat_function(fun=fun1, xlim=c(1985, cutoff.temp-1), size=1.25)
-  fig6 <- fig6 + stat_function(fun=fun2, xlim=c(cutoff.temp, 2017), size=1.25)
+  
+  if (region.temp %in% c("Outer Coast", "South Bay", "North Bay")) {
+    fig6 <- fig6 + stat_function(fun=fun.log, size=1.25)
+    fig6 <- fig6 + geom_text(aes(x=2008, y=max(dat.temp$total)/10, label=str_c("r-squared = ",log.rsq,  "; p = ", round(coefficients(summary(model.log))[3,4], 3))))
+    
+  } else {
+    fig6 <- fig6 + stat_function(fun=fun1, xlim=c(1985, cutoff.temp-1), size=1.25)
+    fig6 <- fig6 + stat_function(fun=fun2, xlim=c(cutoff.temp, 2017), size=1.25)
+    
+    fig6 <- fig6 + geom_text(aes(x=2008, y=max(dat.temp$total)/7, label="time period     r-square     p-value"))
+    fig6 <- fig6 + geom_text(aes(x=2008, y=max(dat.temp$total)/10, label=str_c("1985-", cutoff.temp-1, "          ", round(summary(lm1)$r.squared,2),  "          ", round(coefficients(summary(lm1))[2,4], 3))))
+    fig6 <- fig6 + geom_text(aes(x=2008, y=(max(dat.temp$total)/17), label=str_c(cutoff.temp, "-2017          ", round(summary(lm2)$r.squared,2),  "          ", round(coefficients(summary(lm2))[2,4], 3))))
+  }
+  
   fig6 <- fig6 + theme_classic()
   fig6 <- fig6 + theme(panel.spacing = unit(0.25, "in"))
   fig6 <- fig6 + theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
   fig6 <- fig6 + theme(axis.title.y = element_text(margin = margin(r=1, unit="line")))
   fig6 <- fig6 + theme(strip.background = element_rect(fill=NULL, linetype = "blank"))
-  fig6 <- fig6 + geom_text(aes(x=2008, y=max(dat.temp$total)/7, label="time period     r-square     p-value"))
-  fig6 <- fig6 + geom_text(aes(x=2008, y=max(dat.temp$total)/10, label=str_c("1985-", cutoff.temp-1, "          ", round(summary(lm1)$r.squared,2),  "          ", round(coefficients(summary(lm1))[2,4], 3))))
-  fig6 <- fig6 + geom_text(aes(x=2008, y=(max(dat.temp$total)/17), label=str_c(cutoff.temp, "-2017          ", round(summary(lm2)$r.squared,2),  "          ", round(coefficients(summary(lm2))[2,4], 3))))
-  #fig6 <- fig6 + geom_text(aes(x=2008, y=max(dat.temp$total)/10, label=str_c("time period 1985-", cutoff.temp-1, "; r-squared = ", round(summary(lm1)$r.squared,2),  "; p = ", round(coefficients(summary(lm1))[2,4], 3))))
-  #fig6 <- fig6 + geom_text(aes(x=2008, y=(max(dat.temp$total)/17), label=str_c("time period ", cutoff.temp, "-2017; r-squared = ", round(summary(lm2)$r.squared,2),  "; p = ", round(coefficients(summary(lm2))[2,4], 3))))
   fig6 <- fig6 + theme(text = element_text(size=16))
   fig6
+  
+  ##PLOT 6a. on a ln scale with linear functions
+  
+  fig6a <- ggplot(data = dat.temp, aes(x = Year, y=log(total)))
+  fig6a <- fig6a + geom_point(size=2)
+  fig6a <- fig6a + facet_wrap(~Region, strip.position="top", scales="free") ##split up sites with facets
+  fig6a <- fig6a + ylab("ln(Number of DCCO nests)")
+  fig6a <- fig6a + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0), limits=c(1985,2017))
+  #fig6a <- fig6a + scale_y_continuous(breaks=seq(0, 2500, 100), expand=c(0,0), limits = c(0, NA))
+  
+  if (region.temp %in% c("Outer Coast", "South Bay", "North Bay")) {
+    #fig6a <- fig6a + stat_function(fun=fun.log.trans)
+  } else {
+    fig6a <- fig6a + stat_function(fun=fun1.lm, xlim=c(1985, cutoff.temp-1), size=1.25)
+    fig6a <- fig6a + stat_function(fun=fun2.lm, xlim=c(cutoff.temp, 2017), size=1.25)
+    
+    fig6a <- fig6a + geom_text(aes(x=2008, y=min(log(dat.temp$total))+(max(log(dat.temp$total))-min(log(dat.temp$total)))/7, label="time period     r-square     p-value"))
+    fig6a <- fig6a + geom_text(aes(x=2008, y=min(log(dat.temp$total))+(max(log(dat.temp$total))-min(log(dat.temp$total)))/10, label=str_c("1985-", cutoff.temp-1, "          ", round(summary(lm1)$r.squared,2),  "          ", round(coefficients(summary(lm1))[2,4], 3))))
+    fig6a <- fig6a + geom_text(aes(x=2008, y=min(log(dat.temp$total))+(max(log(dat.temp$total))-min(log(dat.temp$total)))/17, label=str_c(cutoff.temp, "-2017          ", round(summary(lm2)$r.squared,2),  "          ", round(coefficients(summary(lm2))[2,4], 3))))
+  }
+  
+  fig6a <- fig6a + theme_classic()
+  fig6a <- fig6a + theme(panel.spacing = unit(0.25, "in"))
+  fig6a <- fig6a + theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
+  fig6a <- fig6a + theme(axis.title.y = element_text(margin = margin(r=1, unit="line")))
+  fig6a <- fig6a + theme(strip.background = element_rect(fill=NULL, linetype = "blank"))
+  fig6a <- fig6a + theme(text = element_text(size=16))
+  fig6a
   
   ##save the plot
   #assign(str_c("fig6.", as.character(region.temp)), fig6) ##save plot for that region ##this approach doesn't work because the variables (eg lm1) get updated so the plot call with plot the most recent one, not the variable that existed when it was saved
   png(filename = str_c("fig6.",region.temp, ".png"), units="in", width=6*1.5, height=4*1.5,  res=200);print(fig6); dev.off()
+  
+  png(filename = str_c("fig6.",region.temp, ".ln.png"), units="in", width=6*1.5, height=4*1.5,  res=200);print(fig6a); dev.off()
 }
 
 ##this section goes through:

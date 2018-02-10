@@ -1,0 +1,25 @@
+---
+title: "Double-Crested Cormorant Populations in San Francisco Bay from 1985--2017"
+subtitle: "Draft of Analyses"
+author: "Max Tarjan"
+date: "`r format(Sys.Date(), "%B %d, %Y")`"
+output:
+  word_document:
+    reference_docx: DCCO_format_doc.docx
+    pandoc_args: ["--smart"]
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=FALSE, warning=FALSE, include=FALSE}
+source('DCCO_pop_analysis_code_5Feb2018.R')
+```
+
+
+# Background
+This manuscript describes options for analyzing trends in DCCO populations in the San Francisco Bay Area from 1985--2017.
+
+# Methods
