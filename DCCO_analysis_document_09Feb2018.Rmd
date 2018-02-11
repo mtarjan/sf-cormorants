@@ -25,6 +25,17 @@ This manuscript describes options for analyzing trends in DCCO populations in th
 # Methods
 Following the methods of Manuwal et al (2000), I plotted raw regional counts using loess and standard error shading. I identified which regions followed exponential growth and which followed logistic growth by visualizing the ln-transformed regional counts. For the regions of the Bridges and South Farallone Islands, I identified subsets of years where data followed distinct trajectories and fit independent linear models for each data subset. I fit logistic growth equations for the regions of the North Bay, Outer Coast, and South Bay.
 
+# Tables
+Table 1. Site descriptions, including region, coordinates, and number of years with nest counts.
+```{r, echo=FALSE}
+knitr::kable(ms.table1)
+```
+
+Table 2. Percent annual change in estimated nest counts by region. Estimates are based on log-linearized functions for discrete time periods.
+```{r, echo=FALSE}
+knitr::kable(slope.table)
+```
+
 # Figures
 ```{r, echo=FALSE}
 knitr::include_graphics(path="C:/Users/max/Desktop/Tarjan/Science/GIS/DCCO_GIS/DCCO_sites_map_28Aug2017.jpg")

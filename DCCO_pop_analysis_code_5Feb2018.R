@@ -120,7 +120,7 @@ fig3 <- fig3 + theme(axis.title.y = element_text(margin = margin(r=1, unit="line
 fig3 <- fig3 + theme(strip.background = element_rect(fill=NULL, linetype = "blank"))
 fig3
 
-#png(filename = "fig3.png", units="in", width=6*1.5, height=4*1.5,  res=200);fig3; dev.off()
+png(filename = "fig3.png", units="in", width=6.5, height=6.5,  res=200);fig3; dev.off()
 
 ##FIGURE 3A
 ##loess on log(count)
@@ -329,24 +329,22 @@ fig3d
 ##use my regional counts
 #regional.counts<-regional.counts.org
 
+out<-dim(0) ##output for table
 for (j in 1:length(unique(regional.counts$Region))) {
   region.temp<-unique(regional.counts$Region)[j]
   dat.temp<-subset(regional.counts, subset = Region ==region.temp) ##take regional data only
   
   ##get equations for two separate pieces
   cutoff.temp<-cutoff$X2[which(as.character(cutoff$X1)==as.character(region.temp))]
-  lm1<-lm(formula = log(total)~Year, data=subset(dat.temp, Year < cutoff.temp & total>0))
-  lm2<-lm(formula = log(total)~Year, data=subset(dat.temp, Year >= cutoff.temp & total >0))
+  #lm1<-lm(formula = log(total)~Year, data=subset(dat.temp, Year < cutoff.temp & total>0))
+  #lm2<-lm(formula = log(total)~Year, data=subset(dat.temp, Year >= cutoff.temp & total >0))
+  
+  lm1<-lm(formula = log(total+0.01)~Year, data=subset(dat.temp, Year < cutoff.temp))
+  lm2<-lm(formula = log(total+0.01)~Year, data=subset(dat.temp, Year >= cutoff.temp))
   
   ##make an equation for logistic growth
   model.log<-nls(total~K/(1+((K-No)/No)*exp(-r*(Year-1986))),
               start=list(K=800,No=1,r=0.5),data=dat.temp,trace=F)
-  model.log.trans<-nls(log(total)~K/(1+((K-No)/No)*exp(-r*(Year-1986))),
-                       start=list(K=6.5,No=0.03,r=0.4),data=subset(dat.temp, total>0),trace=F)
-  
-  #model.log.trans<-nls(log(total)~log(K)-log(1+((K-No)/No)*exp(-r*(Year-1986))),
-   #                    start=list(K=800,No=0.3,r=0.45),data=subset(dat.temp, total>0),trace=F)
-  
   
   ##get functions from equations
   fun1<-function(x) exp(coefficients(lm1)[1])*exp(coefficients(lm1)[2]*x)
@@ -362,25 +360,6 @@ for (j in 1:length(unique(regional.counts$Region))) {
   #r<-0.4
   r<-coefficients(model.log)[3]
   fun.log<- function(x) K/(1+((K-No)/No)*exp(-r*(x-1986)))
-  
-  ##function to be plotted on log scale
-  No.trans<-coefficients(model.log.trans)[2]
-  K.trans<-coefficients(model.log.trans)[1]
-  r.trans<-coefficients(model.log.trans)[3]
-  fun.log.trans<- function(x) K.trans/(1+((K.trans-No.trans)/No.trans)*exp(-r.trans*(x-1986)))
-  
-  ##work in progress. function to be calculated on log scale and then backtransformed to be plotted on regular scale
-  #K<-800
-  #No<-.2
-  #r<-0.45
-  #fun.log.backtrans<- function(x) log(K)-log(1+((K-No)/No)*exp(-r*(x-1986)))
-  
-  #fun.log.backtrans(1998); fun.log.backtrans(2016)
-  
-  #fig6a <- ggplot(data = dat.temp, aes(x = Year, y=log(total)))
-  #fig6a <- fig6a + geom_point(size=2)
-  #fig6a <- fig6a + stat_function(fun=fun.log.backtrans)
-  #fig6a
   
   ##calculate r-square
   RSS.p <- sum(residuals(model.log)^2) ##residual sum of squares
@@ -425,16 +404,12 @@ for (j in 1:length(unique(regional.counts$Region))) {
   fig6a <- fig6a + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0), limits=c(1985,2017))
   #fig6a <- fig6a + scale_y_continuous(breaks=seq(0, 2500, 100), expand=c(0,0), limits = c(0, NA))
   
-  if (region.temp %in% c("Outer Coast", "South Bay", "North Bay")) {
-    #fig6a <- fig6a + stat_function(fun=fun.log.trans)
-  } else {
-    fig6a <- fig6a + stat_function(fun=fun1.lm, xlim=c(1985, cutoff.temp-1), size=1.25)
-    fig6a <- fig6a + stat_function(fun=fun2.lm, xlim=c(cutoff.temp, 2017), size=1.25)
-    
-    fig6a <- fig6a + geom_text(aes(x=2008, y=min(log(dat.temp$total))+(max(log(dat.temp$total))-min(log(dat.temp$total)))/7, label="time period     r-square     p-value"))
-    fig6a <- fig6a + geom_text(aes(x=2008, y=min(log(dat.temp$total))+(max(log(dat.temp$total))-min(log(dat.temp$total)))/10, label=str_c("1985-", cutoff.temp-1, "          ", round(summary(lm1)$r.squared,2),  "          ", round(coefficients(summary(lm1))[2,4], 3))))
-    fig6a <- fig6a + geom_text(aes(x=2008, y=min(log(dat.temp$total))+(max(log(dat.temp$total))-min(log(dat.temp$total)))/17, label=str_c(cutoff.temp, "-2017          ", round(summary(lm2)$r.squared,2),  "          ", round(coefficients(summary(lm2))[2,4], 3))))
-  }
+  fig6a <- fig6a + stat_function(fun=fun1.lm, xlim=c(1985, cutoff.temp-1), size=1.25)
+  fig6a <- fig6a + stat_function(fun=fun2.lm, xlim=c(cutoff.temp, 2017), size=1.25)
+  
+  fig6a <- fig6a + geom_text(aes(x=2008, y=min(log(dat.temp$total+0.01))+(max(log(dat.temp$total+0.01))-min(log(dat.temp$total+0.01)))/7, label="time period     r-square     p-value"))
+  fig6a <- fig6a + geom_text(aes(x=2008, y=min(log(dat.temp$total+0.01))+(max(log(dat.temp$total+0.01))-min(log(dat.temp$total+0.01)))/10, label=str_c("1985-", cutoff.temp-1, "          ", round(summary(lm1)$r.squared,2),  "          ", round(coefficients(summary(lm1))[2,4], 3))))
+  fig6a <- fig6a + geom_text(aes(x=2008, y=min(log(dat.temp$total+0.01))+(max(log(dat.temp$total+0.01))-min(log(dat.temp$total+0.01)))/17, label=str_c(cutoff.temp, "-2017          ", round(summary(lm2)$r.squared,2),  "          ", round(coefficients(summary(lm2))[2,4], 3))))
   
   fig6a <- fig6a + theme_classic()
   fig6a <- fig6a + theme(panel.spacing = unit(0.25, "in"))
@@ -449,7 +424,16 @@ for (j in 1:length(unique(regional.counts$Region))) {
   png(filename = str_c("fig6.",region.temp, ".png"), units="in", width=6*1.5, height=4*1.5,  res=200);print(fig6); dev.off()
   
   png(filename = str_c("fig6.",region.temp, ".ln.png"), units="in", width=6*1.5, height=4*1.5,  res=200);print(fig6a); dev.off()
+  
+  out.temp1<-c(as.character(region.temp), str_c("1985-", cutoff.temp), round(coefficients(lm1)[2],2), round(coefficients(summary(lm1))[2,2], 3), round(coefficients(summary(lm1))[2,4], 3), round(exp(coefficients(lm1)[2])*100-100,2))
+  ##percent annual increase is exp(slope)
+  out.temp2<-c(as.character(region.temp), str_c(cutoff.temp, "-2017"), round(coefficients(lm2)[2],2), round(coefficients(summary(lm2))[2,2], 3), round(coefficients(summary(lm2))[2,4], 3), round(exp(coefficients(lm2)[2])*100-100,2))
+  out<-rbind(out, out.temp1, out.temp2)
 }
+
+#out<-data.frame(out); colnames(out)<-c("Region", "start", "end", "slope", "se", "lower95CI", "upper95CI", "pvalue", "percent.annual.increase", "percent.upper95CI", "percent.lower95CI")
+
+slope.table<-data.frame(out); colnames(slope.table)<-c("Region", "Time period", "slope", "se", "pvalue", "percent.annual.increase")
 
 ##this section goes through:
 ##1) fit a basic model
