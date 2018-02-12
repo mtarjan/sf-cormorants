@@ -580,18 +580,56 @@ M8<-gam(Count ~ s(Year, by=Colony) + Colony + Survey.type,
 #lines(new.dat, gam.pred$fit, type = "l", lty = "dotted")
 
 ##plot sum of site counts for a given region
+new.dat<-table(counts$Year, as.character(counts$Colony)) %>% data.frame()
+colnames(new.dat)<-c("Year", "Colony", "Freq")
+new.dat<-dplyr::left_join(new.dat[,1:2], y=subset(counts, select=c(Region,Colony)), by = c("Colony","Colony"))
+new.dat<-unique(new.dat)
+new.dat<-subset(new.dat, Region!="")
+new.dat$Survey.type<-as.factor(rep("Ground", nrow(new.dat)))
+new.dat$Year<-as.numeric(as.character(new.dat$Year))
+new.dat$Colony<-as.factor(new.dat$Colony)
 ##use M8
 ##PREDICT ACROSS FULL RANGE OF YEARS FOR EACH SITE; THEN CALCUATE REGIONAL PREDICTED COUNTS
-pred<-predict(M8) %>% as.numeric() ##CHANGE THIS TO PREDICT ACROSS ALL YEARS FOR ALL SITES
-counts.m8<-cbind(counts, pred); head(counts.m8)
-plot(pred~Count, data=counts)
+pred<-predict(M8, newdata = new.dat, se.fit=T)$fit %>% as.numeric()
+pred.se<-predict(M8, newdata = new.dat, se.fit=T)$se.fit %>% as.numeric()
+counts.m8<-cbind(new.dat, pred, pred.se)
 
-regional.pred<-counts.m8 %>% group_by(Year, Region) %>% summarise(total=sum(Count), pred=sum(pred)) %>% data.frame()
+##add known counts to counts.m8
+counts.temp<-counts; counts.temp$colony.year<-str_c(as.character(counts$Colony), counts$Year)
+counts.m8.temp<-counts.m8; counts.m8.temp$colony.year<-str_c(as.character(counts.m8$Colony), counts.m8$Year)
+counts.m8<-dplyr::left_join(counts.m8.temp, y=subset(counts.temp, select=c(colony.year, Count)), by = c("colony.year","colony.year"))
+counts.m8<-subset(counts.m8, select=-colony.year)
+head(counts.m8)
+
+#plot(pred~Count, data=counts.m8)
+
+##plot trends for each colony
+plot.dat<-subset(counts.m8, Colony==colony.temp)
+break.temp<-seq(min(plot.dat$pred), max(plot.dat$pred), (max(plot.dat$pred)-min(plot.dat$pred))/10)
+
+j<-j+1
+region.temp<-unique(regional.pred$Region)[j]
+#colony.temp<-unique(counts.m8$Colony)[j]
+#fig <- ggplot(data = subset(counts.m8, Colony==colony.temp), aes(x=Year))
+fig <- ggplot(data = subset(counts.m8, Region==region.temp), aes(x=Year))
+fig <- fig + geom_point(aes(y=Count))
+fig <- fig + geom_path(aes(y=pred))
+#fig <- fig + scale_y_continuous(sec.axis = sec_axis(~ ., breaks=break.temp))
+#fig <- fig + ggtitle(colony.temp)
+fig <- fig + facet_wrap(~Colony, scales = "free_y")
+fig
+
+regional.pred<-counts.m8 %>% group_by(Year, Region) %>% summarise(total=sum(Count, na.rm=T), pred=sum(pred), pred.se=sum(pred.se)) %>% data.frame()
 
 
-region.temp<-"North Bay"
+j<-j+1
+region.temp<-unique(regional.pred$Region)[j]
 fig <- ggplot(data = subset(regional.pred, Region==region.temp), aes(x=Year, y=pred))
 fig <- fig + geom_path()
+#fig <- fig + geom_path(aes(x=Year, y=pred+pred.se), lty="dashed")
+#fig <- fig + geom_path(aes(x=Year, y=pred-pred.se), lty="dashed")
+#fig <- fig + geom_point(aes(x=Year, y=total))
+fig <- fig + ggtitle(region.temp)
 fig
 
 ##GAMM (poptrend)
