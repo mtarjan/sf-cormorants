@@ -23,7 +23,45 @@ source('DCCO_pop_analysis_code_5Feb2018.R')
 This manuscript describes options for analyzing trends in DCCO populations in the San Francisco Bay Area from 1985--2017.
 
 # Methods
-Following the methods of Manuwal et al (2000), I plotted raw regional counts using loess and standard error shading. I identified which regions followed exponential growth and which followed logistic growth by visualizing the ln-transformed regional counts. For the regions of the Bridges and South Farallone Islands, I identified subsets of years where data followed distinct trajectories and fit independent linear models for each data subset. I fit logistic growth equations for the regions of the North Bay, Outer Coast, and South Bay.
+##Exponential and logrithmic groth models
+Following the methods of Manuwal et al (2000), I plotted raw regional counts using loess and standard error shading. I identified which regions followed exponential growth and which followed logistic growth by visualizing the ln-transformed regional counts. For the regions of the Bridges and South Farallon Islands, I identified subsets of years where data followed distinct trajectories and fit independent linear models for each data subset. I fit logistic growth equations for the regions of the North Bay, Outer Coast, and South Bay.
+
+##Generalized Additive Mixed Models (GAMMs)
+Count data are frequently used to estimate population trends, but are subject to biases in data collection. Notably, raw counts are strongly affected by survey effort and survey dates and long-term trends can be biased by short-term annual shifts due to environmental variation. Our raw counts are likey subject to these effects. The North Bay and South Bay regions contain multiple (12+) DCCO nesting colonies, but not all sites were visited in each year and more sites were visited in the later years compared to the early years of the study. Site occupation also depends on day of the season. Birds arrive to breed in April, peak breeding occurs in June, and they depart in August. Nest counts increase and then decrease as the season progresses, so day of the season is an important covariate when inferring colony size. Furthermore, breeding attempts are likely dependent on site and food availability, which may show annual fluctuations that cause nest counts to deviate from the long-term population trend. Other potential covariates are survey type (aerial, boat, or ground) and the observing organization. To account for potential biases, we included notable covariates in our estimates of regional trends. Long-term population dynamics are frequently non-linear, so we used an approach that would allow for nonlinear trends. 
+
+We estimated regional trends in nest counts using Generalized Additive Mixed Models (GAMMs) in the poptrend package in R (Knape 2016). The count for a given colony in a given year was modeled as a function of a temporal random effect (year), a random site effect, and a fixed day of the season effect (except in the case of the Bridges region, which comprises only two sites so could not accomodate a day of the season effect). We compared this model to three alternatives: (1) temporal fixed effects, (2) temporal random effects, and (3) temporal random effects and a random site effect. Error estimates were drawn from the maximum likelihood table. For the purpose of applying the model, we assumed that the effect of covariates does not change over time (e.g. the day of the season effect is consistent across years). A complete description of the model is available in Knape (2016).
+
+# Results
+## Model selection and fit
+The selected model included the random effects of site and year and a day of the season fixed effect. The selected full model resulted in better model fit in all cases where it could be applied (it minimized residual error). Other covariates, such as survey method (aerial, boat, or ground) and distance to the bridges, had little effect on the qualitative results and did not improve model fit, so were excluded from the model.
+
+##Regional Trends
+### Bridges
+DCCO nests on the bridges markedly increased from the beginning of the study until 2003, with a trackable decrease in numbers from 2004 to the end of the study period. The mean trend from model outputs shows that the first year of decline occured between 2003 and 2004, which corresponds with bridge construction.
+
+### North Bay
+While results for all models were qualitatively similar in other regions, models for the North Bay region differed depending on the inclusion of the day of the season effect (Appendix 2). This difference was largely driven by two counts in years 1989 and 1990. Counts in these years occurred much later in the season when birds were likely to have begun leaving the breeding area (day `r round(mean(subset(counts, Region=="North Bay" & Year <=1990)$day, na.rm = T),0)` compared to day `r round(mean(subset(counts, Region=="North Bay" & Year >1990)$day, na.rm = T),0)` in other years). When day of the season was included in the model for the North Bay region, estimated counts for these early years were elevated to compensate for the late count date, causing an overall decrease in counts from 1989--1992. Other changes were relatively small to this initial drop, so the model shows no other significant decreases through 2016. This is in contrast to the simpler model without the day of the season effect. The model without count date shows no significant decrease until 1994, at which point a decreasing trend persists through 2016. Although the two models differ in the exact timing of the decline, both models are in agreement that a significant decrease occurred during the study in the North Bay region. Notably, this decrease in the estimated trend is in contrast to observations based on raw data.
+
+Raw counts (Fig. 2) and model trends (Fig. 3) differed for the North Bay region. Similar to the South Bay region, counts for fewer sites existed in the early survey years; neither region had counts for more than five sites until 2003, but counts existed for up to 11 sites by 2007. While the raw counts are subject to a bias in survey effort (earlier years show lower regional counts due to less survey effort), the model accounts for missing information at sites in the early years through the inclusion of a fixed site effect. The model outputs are therefore more likely to reflect the regional trends in nest counts. Although new sites have been occuppied in the North Bay throughout this study, the overall trend in the region has decreased by `r round(change(regional.models$'North Bay', 1989, 2016)$percentChange,0)`% (CI `r round(change(regional.models$'North Bay', 1989, 2016)$CI[1],0)`-- `r round(change(regional.models$'North Bay', 1989, 2016)$CI[2],0)`%) since counts began.
+
+### Outer Coast
+Model estimates qualitatively show increasing growth in DCCO nest counts throughout the study period, but there was no statistically detectable increase between any years at the 5% level. The trend slope remains relatively consistent across the survey period, suggesting a change of `r round(change(regional.models$'Outer Coast', 1985, 2016)$percentChange,0)`% (CI `r round(change(regional.models$'Outer Coast', 1985, 2016)$CI[1],0)`-- `r round(change(regional.models$'Outer Coast', 1985, 2016)$CI[2],0)`%) from 1985 to 2016.
+
+### South Bay
+The South Bay region showed a notable `r round(change(regional.models$'South Bay', 1990, 1997)$percentChange,0)`% (CI `r round(change(regional.models$'South Bay', 1990, 1997)$CI[1],0)`-- `r round(change(regional.models$'South Bay', 1990, 1997)$CI[2],0)`%) increase from 1990 to 1997, followed by a `r round(change(regional.models$'South Bay', 2006, 2010)$percentChange,0)`% (CI `r round(change(regional.models$'South Bay', 2006, 2010)$CI[1],0)`-- `r round(change(regional.models$'South Bay', 2006, 2010)$CI[2],0)`%) decrease from 2006 to 2010. DCCO nest counts have increased `r round(change(regional.models$'South Bay', 1988, 2016)$percentChange,0)`% (CI `r round(change(regional.models$'South Bay', 1988, 2016)$CI[1],0)`-- `r round(change(regional.models$'South Bay', 1988, 2016)$CI[2],0)`%) across the duration of the entire study.
+
+##San Francisco Bay Trends
+DCCO counts in the entirety of the San Francisco Bay Area are characterized by a nonlinear trend with notable shifts in estimated counts across spans of four years. Counts for the population as a whole decreased by `r round(change(trFit.all, 2006, 2009)$percentChange,0)`% (CI `r round(change(trFit.all, 2006, 2009)$CI[1],0)`-- `r round(change(trFit.all, 2006, 2009)$CI[2],0)`%) from 2006 -- 2009 and then increased by `r round(change(trFit.all, 2010, 2013)$percentChange,0)`% (CI `r round(change(trFit.all, 2010, 2013)$CI[1],0)`-- `r round(change(trFit.all, 2010, 2013)$CI[2],0)`%) from 2010 to 2013. Across the study period (1985 -- 2016), the counts increase by `r round(change(trFit.all, 1985, 2016)$percentChange,0)`% (CI `r round(change(trFit.all, 1985, 2016)$CI[1],0)`-- `r round(change(trFit.all, 1985, 2016)$CI[2],0)`%).
+
+#Discussion
+##Dispersal from the Bridge Region
+We did not find quantitative evidence to support DCCO dispersal to any particular region following bridge construction in 2002 (Fig. 3), nor did we find evidence that dispersal was limited within the scale of the study area (Appendix 3). Uncovering the effect of bridge construction on DCCO dispersal may require studies at a larger scale or tagging of individuals.
+
+##Works Cited
+Knape, J. (2016). Decomposing trends in Swedish bird populations using generalized additive mixed models. Journal of Applied Ecology, 53(6), 1852–1861. https://doi.org/10.1111/1365-2664.12720
+
+Manuwal, D. A., Carter, H. R., Zimmerman, T. S., & Orthmeyer, D. L. (2000). Biology and Conservation of the Common Murre in California, Oregon, Washington, and British Columbia Volume 1: Natural History and Population Trends. Information and Technology Report (Vol. 1).
+
 
 # Tables
 Table 1. Site descriptions, including region, coordinates, and number of years with nest counts.
@@ -35,6 +73,12 @@ Table 2. Percent annual change in estimated nest counts by region. Estimates are
 ```{r, echo=FALSE}
 knitr::kable(slope.table)
 ```
+
+Table 2. Percent annual change in estimated nest counts by region according to poptrend models.
+```{r, echo=FALSE}
+knitr::kable(trend.estimates)
+```
+
 
 # Figures
 ```{r, echo=FALSE}
@@ -73,5 +117,49 @@ knitr::include_graphics(path="Fig6.South Farallon Islands.png")
 ```
 Fig 7. Regional counts over time in the South Farallon Islands region with fitted model (fitted as linear model on ln-transformed data).
 
-##Works Cited
-Manuwal, D. A., Carter, H. R., Zimmerman, T. S., & Orthmeyer, D. L. (2000). Biology and Conservation of the Common Murre in California, Oregon, Washington, and British Columbia Volume 1: Natural History and Population Trends. Information and Technology Report (Vol. 1).
+```{r, echo=FALSE, fig.height=8, fig.width=7.5}
+par(mfrow = c(2,2), bty="L", mar=c(4,4,4,2), mgp=c(2,0.5,0))
+for (j in 1:length(regional.models)){
+  trFit<-regional.models[[j]]
+  plot(trFit, main=names(regional.models)[j], ylab="Trend in nest counts", ciBase=mean, plotGrid = F)
+}
+par(mfrow=c(1,1))
+```
+  
+Fig 8. Trend estimates for DCCO nest count data. Trend estimates are plotted relative to the mean value (i.e. the mean value is set to 1). Estimates were generated using a GAMM that estimates nest counts as a function of year (temporal random effect), a random site effect, and a day of the season fixed effect (except in the case of the Bridge Region, which did not have enough degrees of freedom to include the day of the season effect). Points and bars indicate the mean and 95% CI for the annual count estimates. The black trendlines and blue shading indicate the mean and 95% CI for the long-term trend. Green and red lines indicate significant increases and decreases in the trend at the 5% level respectively. Green and red shading above the x-axis indicate significant increases in the second derivative (i.e. trend acceleration/deceleration) at the 5% level respectively.
+
+
+```{r, echo=FALSE, fig.height=6, fig.width=7.5}
+##set up data
+data.temp<-subset(counts, Region!="Bridges") %>% group_by(Year) %>% summarise(total=sum(Count)) %>% data.frame()
+
+par(bty="L", mgp=c(2,0.5,0), mar=c(4,4,4,4))
+
+plot(trFit.nonbridge, ciBase=mean, ylab="Trend in nest counts", plotGrid=F)
+
+##add points of raw data
+par(new=T)
+plot(data.temp$Year, data.temp$total, pch=4, axes=F, ylab="", xlab="")
+axis(side=4)
+mtext(side = 4, line = 2, 'DCCO Nest Counts')
+
+```
+  
+Fig 9. Trend estimate for all regions in the San Francisco Bay Area with the exception of the Bridges. DCCO nest counts appear as x's.
+
+```{r, echo=FALSE, fig.height=6, fig.width=7.5}
+##set up data
+data.temp<-counts %>% group_by(Year) %>% summarise(total=sum(Count)) %>% data.frame()
+
+par(bty="L", mgp=c(2,0.5,0), mar=c(4,4,4,4))
+
+plot(trFit.all, ciBase=mean, ylab="Trend in nest counts", plotGrid=F)
+
+##add points of raw data
+par(new=T)
+plot(data.temp$Year, data.temp$total, pch=4, axes=F, ylab="", xlab="")
+axis(side=4)
+mtext(side = 4, line = 2, 'DCCO Nest Counts')
+```
+  
+Fig 10. Trend estimate for all regions in the San Francisco Bay Area including the Bridges. DCCO nest counts appear as x's.
