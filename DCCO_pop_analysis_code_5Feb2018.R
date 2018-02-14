@@ -12,6 +12,7 @@ require(dplyr)
 require(tidyr)
 library(stringr)
 library(gdata) ##required for read.xls
+library(BBmisc) ##required for normalize function
 
 
 ##load DCCO nest counts
@@ -594,7 +595,7 @@ pred<-predict(M8, newdata = new.dat, se.fit=T)$fit %>% as.numeric()
 pred.se<-predict(M8, newdata = new.dat, se.fit=T)$se.fit %>% as.numeric()
 counts.m8<-cbind(new.dat, pred, pred.se)
 
-##add known counts to counts.m8
+##add field counts to predicted counts.m8
 counts.temp<-counts; counts.temp$colony.year<-str_c(as.character(counts$Colony), counts$Year)
 counts.m8.temp<-counts.m8; counts.m8.temp$colony.year<-str_c(as.character(counts.m8$Colony), counts.m8$Year)
 counts.m8<-dplyr::left_join(counts.m8.temp, y=subset(counts.temp, select=c(colony.year, Count)), by = c("colony.year","colony.year"))
@@ -603,34 +604,67 @@ head(counts.m8)
 
 #plot(pred~Count, data=counts.m8)
 
+out<-dim(0)
+for (j in 1:nrow(counts.m8)){
+  colony.temp<-counts.m8$Colony[j]
+  region.temp<-counts.m8$Region[j]
+  regional.counts.temp<-subset(counts.m8, Region==region.temp) %>% group_by(Region, Year) %>% summarise(total=sum(Count, na.rm=T)) %>% data.frame
+  out.temp<-mean(subset(counts.m8, Colony==colony.temp)$Count, na.rm=T)/mean(regional.counts.temp$total, na.rm=T)
+  out<-c(out, out.temp)
+}
+counts.m8$weight<-out ##mean colony size as a fraction of mean regional size
+
+#counts.m8[which(duplicated(counts.m8$Colony)==F),] %>% group_by(Region) %>% summarise(sum(weight))
+
+##add normalized predictor
+counts.m8$pred.norm<-rep(NA, nrow(counts.m8))
+for (j in 1:length(unique(counts.m8$Colony))) {
+  colony.temp<-unique(counts.m8$Colony)[j]
+  dat.temp<-subset(counts.m8, Colony==colony.temp)
+  range.min<-min(dat.temp$Count, na.rm=T)
+  range.max<-max(dat.temp$Count, na.rm=T)
+  norm.temp<-normalize(dat.temp$pred, range=c(range.min, range.max), method="range")
+  counts.m8$pred.norm[which(counts.m8$Colony==colony.temp)]<-norm.temp
+}
+
+##WEIGHT THE predictions BY POPULATION SIZE
+##alternative is to use predictor that is already scaled to pop size
+regional.pred<-counts.m8 %>% group_by(Year, Region) %>% summarise(total=sum(Count, na.rm=T), pred=sum(pred), pred.se=sum(pred.se), pred.norm=sum(pred.norm)) %>% data.frame()
+
+##replace missing years of counts with NA
+for (j in 1:nrow(regional.pred)) {
+  dat.temp<-subset(regional.counts, Year==regional.pred$Year[j] & Region==regional.pred$Region[j])
+  if (nrow(dat.temp)==0) {
+    regional.pred$total[j]<-NA
+  }
+}
+
 ##plot trends for each colony
-plot.dat<-subset(counts.m8, Colony==colony.temp)
-break.temp<-seq(min(plot.dat$pred), max(plot.dat$pred), (max(plot.dat$pred)-min(plot.dat$pred))/10)
-
-j<-j+1
-region.temp<-unique(regional.pred$Region)[j]
-#colony.temp<-unique(counts.m8$Colony)[j]
-#fig <- ggplot(data = subset(counts.m8, Colony==colony.temp), aes(x=Year))
-fig <- ggplot(data = subset(counts.m8, Region==region.temp), aes(x=Year))
-fig <- fig + geom_point(aes(y=Count))
-fig <- fig + geom_path(aes(y=pred))
-#fig <- fig + scale_y_continuous(sec.axis = sec_axis(~ ., breaks=break.temp))
-#fig <- fig + ggtitle(colony.temp)
-fig <- fig + facet_wrap(~Colony, scales = "free_y")
-fig
-
-regional.pred<-counts.m8 %>% group_by(Year, Region) %>% summarise(total=sum(Count, na.rm=T), pred=sum(pred), pred.se=sum(pred.se)) %>% data.frame()
-
-
-j<-j+1
-region.temp<-unique(regional.pred$Region)[j]
-fig <- ggplot(data = subset(regional.pred, Region==region.temp), aes(x=Year, y=pred))
-fig <- fig + geom_path()
-#fig <- fig + geom_path(aes(x=Year, y=pred+pred.se), lty="dashed")
-#fig <- fig + geom_path(aes(x=Year, y=pred-pred.se), lty="dashed")
-#fig <- fig + geom_point(aes(x=Year, y=total))
-fig <- fig + ggtitle(region.temp)
-fig
+for (j in 1:length(unique(regional.pred$Region))) {
+  region.temp<-unique(regional.pred$Region)[j]
+  
+  ##plot trends by colony
+  data.plot<-subset(counts.m8, Region==region.temp)
+  fig <- ggplot(data = data.plot, aes(x=Year))
+  fig <- fig + geom_point(aes(y=Count))
+  fig <- fig + geom_path(aes(y=pred.norm))
+  fig <- fig + ggtitle(region.temp)
+  fig <- fig + facet_wrap(~Colony, scales = "free_y")
+  #fig <- fig + scale_y_continuous(sec.axis = sec_axis(~ .))
+  fig
+  
+  png(filename = str_c("fig.gam.",region.temp, ".colonies.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
+  
+  ##plot trends by region
+  data.plot<-subset(regional.pred, Region==region.temp)
+  fig <- ggplot(data = data.plot, aes(x=Year))
+  fig <- fig + geom_point(aes(y=total))
+  fig <- fig + geom_path(aes(y=normalize(pred.norm, range=c(min(total, na.rm=T), max(total, na.rm=T)), method="range")))
+  fig <- fig + ggtitle(region.temp)
+  fig
+  
+  png(filename = str_c("fig.gam.",region.temp, ".png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
+}
 
 ##GAMM (poptrend)
 ##poptrend
