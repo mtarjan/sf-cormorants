@@ -617,7 +617,7 @@ counts.m8$weight<-out ##mean colony size as a fraction of mean regional size
 
 #counts.m8[which(duplicated(counts.m8$Colony)==F),] %>% group_by(Region) %>% summarise(sum(weight))
 
-##add normalized predictor
+##add normalized predictor by colony
 counts.m8$pred.norm<-rep(NA, nrow(counts.m8))
 for (j in 1:length(unique(counts.m8$Colony))) {
   colony.temp<-unique(counts.m8$Colony)[j]
@@ -647,8 +647,11 @@ for (j in 1:length(unique(regional.pred$Region))) {
   ##plot trends by colony
   data.plot<-subset(counts.m8, Region==region.temp)
   fig <- ggplot(data = data.plot, aes(x=Year))
-  fig <- fig + geom_point(aes(y=Count))
-  fig <- fig + geom_path(aes(y=pred.norm))
+  
+  ##plot the points with the normalized predictors OR the predictions with SE
+  #fig <- fig + geom_point(aes(y=Count)) + geom_path(aes(y=pred.norm))
+  fig <- fig + geom_path(aes(y=pred)) + geom_path(aes(y=pred+pred.se), lty="dashed") + geom_path(aes(y=pred-pred.se), lty="dashed")
+  
   fig <- fig + ggtitle(region.temp)
   fig <- fig + facet_wrap(~Colony, scales = "free_y")
   #fig <- fig + scale_y_continuous(sec.axis = sec_axis(~ .))
