@@ -604,6 +604,7 @@ head(counts.m8)
 
 #plot(pred~Count, data=counts.m8)
 
+##get a weight for the predictions based on the average size of the colony / the size of the regional counts
 out<-dim(0)
 for (j in 1:nrow(counts.m8)){
   colony.temp<-counts.m8$Colony[j]
@@ -629,7 +630,7 @@ for (j in 1:length(unique(counts.m8$Colony))) {
 
 ##WEIGHT THE predictions BY POPULATION SIZE
 ##alternative is to use predictor that is already scaled to pop size
-regional.pred<-counts.m8 %>% group_by(Year, Region) %>% summarise(total=sum(Count, na.rm=T), pred=sum(pred), pred.se=sum(pred.se), pred.norm=sum(pred.norm)) %>% data.frame()
+regional.pred<-counts.m8 %>% group_by(Year, Region) %>% summarise(total=sum(Count, na.rm=T), pred.regional=sum(pred*weight), pred.se=sum(pred.se)) %>% data.frame()
 
 ##replace missing years of counts with NA
 for (j in 1:nrow(regional.pred)) {
@@ -659,7 +660,7 @@ for (j in 1:length(unique(regional.pred$Region))) {
   data.plot<-subset(regional.pred, Region==region.temp)
   fig <- ggplot(data = data.plot, aes(x=Year))
   fig <- fig + geom_point(aes(y=total))
-  fig <- fig + geom_path(aes(y=normalize(pred.norm, range=c(min(total, na.rm=T), max(total, na.rm=T)), method="range")))
+  fig <- fig + geom_path(aes(y=normalize(pred.regional, range=c(min(total, na.rm=T), max(total, na.rm=T)), method="range")))
   fig <- fig + ggtitle(region.temp)
   fig
   
