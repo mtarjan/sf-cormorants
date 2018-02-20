@@ -17,7 +17,7 @@ library(BBmisc) ##required for normalize function
 
 ##load DCCO nest counts
 #counts<-read.csv("DCCO_counts_18Aug2017.csv")
-counts<-read.xls("C:/Users/max/Desktop/Tarjan/Science/DCCO_counts_25Jan2018.xlsx")
+counts<-read.xls("C:/Users/max/Desktop/Tarjan/Science/DCCO_counts_20Feb2018.xlsx")
 
 ##RESTRICTIONS
 ##exclude seasonal total count type
@@ -62,9 +62,11 @@ mycols<-c("#E7298A", "#771155", "#114477", "#771122", "#DDDD77", "#1B9E77", "#66
 ##can also alter this code to subset by survey type
 mean.colony.counts<-counts %>% group_by(Colony, Year, Region) %>% summarise(mean.count=round(mean(Count),0)) %>% data.frame()
 
+max.colony.counts<-counts %>% group_by(Colony, Year, Region) %>% summarise(max.count=round(max(Count),0)) %>% data.frame()
+
 ##summarize data by region
 #regional.counts<-counts %>% group_by(Region, Year) %>% summarise(total=sum(Count)) %>% data.frame()
-regional.counts<-mean.colony.counts %>% group_by(Region, Year) %>% summarise(total=sum(mean.count)) %>% data.frame()
+regional.counts<-max.colony.counts %>% group_by(Region, Year) %>% summarise(total=sum(max.count)) %>% data.frame()
 
 regional.counts$time.period<-regional.counts$Year
 regional.counts$time.period[which(regional.counts$time.period<=2002)]<-"pre"
@@ -262,7 +264,7 @@ colnames(phil.data)<-c("Region", "Year", "total")
 fig3d <- ggplot(data = subset(phil.data, subset = Region !="All Colonies"), aes(x = Year, y=total))
 fig3d <- fig3d + geom_point(size=2)
 fig3d <- fig3d + geom_smooth(method = "loess")
-fig3d <- fig3d + facet_wrap(~Region, strip.position="top", scales="free_y") ##split up sites with facets; choose this option or the one below
+fig3d <- fig3d + facet_wrap(~Region, strip.position="top", scales="free_y", ncol = 2) ##split up sites with facets; choose this option or the one below
 fig3d <- fig3d + ylab("Number of DCCO nests")
 fig3d <- fig3d + scale_x_continuous(breaks=seq(1980, 2016, 2), expand=c(0,0))
 fig3d <- fig3d + scale_y_continuous(breaks=seq(0, 3500, 200), expand=c(0,0), limits = c(0, NA))
@@ -343,24 +345,44 @@ for (j in 1:length(unique(regional.counts$Region))) {
   lm1<-lm(formula = log(total+0.01)~Year, data=subset(dat.temp, Year < cutoff.temp))
   lm2<-lm(formula = log(total+0.01)~Year, data=subset(dat.temp, Year >= cutoff.temp))
   
+  ##make linear model for all data
+  lm.all<-lm(formula = log(total+0.01)~Year, data=dat.temp)
+  
   ##make an equation for logistic growth
-  model.log<-nls(total~K/(1+((K-No)/No)*exp(-r*(Year-1986))),
-              start=list(K=800,No=1,r=0.5),data=dat.temp,trace=F)
+  
+  if (region.temp=="North Bay") {
+    model.log<-nls(total~K/(1+((K-No)/No)*exp(-r*(Year-1986))),
+                   start=list(K=300,No=20,r=0.5),data=dat.temp,trace=F)
+  } else {
+    model.log<-nls(total~K/(1+((K-No)/No)*exp(-r*(Year-1986))),
+                   start=list(K=800,No=1,r=0.5),data=dat.temp,trace=F)
+  }
+  
   
   ##get functions from equations
   fun1<-function(x) exp(coefficients(lm1)[1])*exp(coefficients(lm1)[2]*x)
   fun2<-function(x) exp(coefficients(lm2)[1])*exp(coefficients(lm2)[2]*x)
+  fun.all<-function(x) exp(coefficients(lm.all)[1])*exp(coefficients(lm.all)[2]*x)
   
   fun1.lm<-function(x) coefficients(lm1)[2]*x+coefficients(lm1)[1]
   fun2.lm<-function(x) coefficients(lm2)[2]*x+coefficients(lm2)[1]
   
-  #No<-0.03
+  fun.lm.all<-function(x) coefficients(lm.all)[2]*x+coefficients(lm.all)[1]
+  
   No<-coefficients(model.log)[2]
-  #K<-6.5
   K<-coefficients(model.log)[1]
-  #r<-0.4
   r<-coefficients(model.log)[3]
+  
+  #No<-20
+  #K<-300
+  #r<-0.5
+  
   fun.log<- function(x) K/(1+((K-No)/No)*exp(-r*(x-1986)))
+  
+  #fig6 <- ggplot(data = dat.temp, aes(x = Year, y=total))
+  #fig6 <- fig6 + geom_point(size=2)
+  #fig6 <- fig6 + stat_function(fun=fun.log, size=1.25)
+  #fig6
   
   ##calculate r-square
   RSS.p <- sum(residuals(model.log)^2) ##residual sum of squares
@@ -420,11 +442,34 @@ for (j in 1:length(unique(regional.counts$Region))) {
   fig6a <- fig6a + theme(text = element_text(size=16))
   fig6a
   
+  ##PLOT 6b. linear function for all data. regular scale
+  
+  fig6b <- ggplot(data = dat.temp, aes(x = Year, y=total))
+  fig6b <- fig6b + geom_point(size=2)
+  fig6b <- fig6b + facet_wrap(~Region, strip.position="top", scales="free") ##split up sites with facets
+  fig6b <- fig6b + ylab("Number of DCCO nests")
+  fig6b <- fig6b + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0), limits=c(1985,2017))
+  
+  fig6b <- fig6b + stat_function(fun=fun.all, xlim=c(1985, 2017), size=1.25)
+  
+  fig6b <- fig6b + geom_text(aes(x=2008, y=min(dat.temp$total)+(max(dat.temp$total)-min(dat.temp$total))/7, label="time period     r-square     p-value"))
+  fig6b <- fig6b + geom_text(aes(x=2008, y=min(dat.temp$total)+(max(dat.temp$total)-min(dat.temp$total))/10, label=str_c("1985-2017          ", round(summary(lm.all)$r.squared,2),  "          ", round(coefficients(summary(lm.all))[2,4], 3))))
+  
+  fig6b <- fig6b + theme_classic()
+  fig6b <- fig6b + theme(panel.spacing = unit(0.25, "in"))
+  fig6b <- fig6b + theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
+  fig6b <- fig6b + theme(axis.title.y = element_text(margin = margin(r=1, unit="line")))
+  fig6b <- fig6b + theme(strip.background = element_rect(fill=NULL, linetype = "blank"))
+  fig6b <- fig6b + theme(text = element_text(size=16))
+  fig6b
+  
   ##save the plot
   #assign(str_c("fig6.", as.character(region.temp)), fig6) ##save plot for that region ##this approach doesn't work because the variables (eg lm1) get updated so the plot call with plot the most recent one, not the variable that existed when it was saved
-  png(filename = str_c("fig6.",region.temp, ".png"), units="in", width=6*1.5, height=4*1.5,  res=200);print(fig6); dev.off()
+  png(filename = str_c("fig6.",region.temp, ".cutoff.png"), units="in", width=6*1.5, height=4*1.5,  res=200);print(fig6); dev.off()
   
   png(filename = str_c("fig6.",region.temp, ".ln.png"), units="in", width=6*1.5, height=4*1.5,  res=200);print(fig6a); dev.off()
+  
+  png(filename = str_c("fig6.",region.temp, ".png"), units="in", width=6*1.5, height=4*1.5,  res=200);print(fig6b); dev.off()
   
   out.temp1<-c(as.character(region.temp), str_c("1985-", cutoff.temp), round(coefficients(lm1)[2],2), round(coefficients(summary(lm1))[2,2], 3), round(coefficients(summary(lm1))[2,4], 3), round(exp(coefficients(lm1)[2])*100-100,2))
   ##percent annual increase is exp(slope)
@@ -515,7 +560,7 @@ M8<-gam(Count ~ s(Year, by=Colony) + Colony + Survey.type,
 #plot(M8$model$Year, M8$fitted.values)
 
 ##diagnostic plots
-#E8<-resid(M8, type="pearson")
+E8<-resid(M8, type="pearson")
 #F8<-fitted(M8)
 #plot(x=F8, y=E8); abline(h=0)
 
@@ -562,7 +607,7 @@ M8<-gam(Count ~ s(Year, by=Colony) + Colony + Survey.type,
 #       })
 
 #Examine overdispersion 
-#sum(E8^2) / (M8$df.res)
+sum(E8^2) / (M8$df.res)
 
 ##make plots of trends generated by GAM
 #colony.temp<-"South Farallon Islands"
@@ -596,10 +641,16 @@ pred.se<-predict(M8, newdata = new.dat, se.fit=T)$se.fit %>% as.numeric()
 counts.m8<-cbind(new.dat, pred, pred.se)
 
 ##add field counts to predicted counts.m8
-counts.temp<-counts; counts.temp$colony.year<-str_c(as.character(counts$Colony), counts$Year)
+#counts.temp<-counts; counts.temp$colony.year<-str_c(as.character(counts$Colony), counts$Year)
+#counts.m8.temp<-counts.m8; counts.m8.temp$colony.year<-str_c(as.character(counts.m8$Colony), counts.m8$Year)
+#counts.m8<-dplyr::left_join(counts.m8.temp, y=subset(counts.temp, select=c(colony.year, Count)), by = c("colony.year","colony.year")) ##THIS INTRODUCES DUPLICATE DATE/COLONY ROWS
+
+##use mean or max colony counts instead
+counts.temp<-max.colony.counts; counts.temp$colony.year<-str_c(as.character(counts.temp$Colony), counts.temp$Year)
 counts.m8.temp<-counts.m8; counts.m8.temp$colony.year<-str_c(as.character(counts.m8$Colony), counts.m8$Year)
-counts.m8<-dplyr::left_join(counts.m8.temp, y=subset(counts.temp, select=c(colony.year, Count)), by = c("colony.year","colony.year"))
+counts.m8<-dplyr::left_join(counts.m8.temp, y=subset(counts.temp, select=c(colony.year, max.count)), by = c("colony.year","colony.year"))
 counts.m8<-subset(counts.m8, select=-colony.year)
+colnames(counts.m8)[ncol(counts.m8)]<-"Count"
 head(counts.m8)
 
 #plot(pred~Count, data=counts.m8)
@@ -610,10 +661,13 @@ for (j in 1:nrow(counts.m8)){
   colony.temp<-counts.m8$Colony[j]
   region.temp<-counts.m8$Region[j]
   regional.counts.temp<-subset(counts.m8, Region==region.temp) %>% group_by(Region, Year) %>% summarise(total=sum(Count, na.rm=T)) %>% data.frame
-  out.temp<-mean(subset(counts.m8, Colony==colony.temp)$Count, na.rm=T)/mean(regional.counts.temp$total, na.rm=T)
+  out.temp<-mean(subset(counts.m8, Colony==colony.temp)$Count, na.rm=T)/mean(regional.counts.temp$total, na.rm=T) ##weight is the mean colony count / mean count of the region
   out<-c(out, out.temp)
 }
 counts.m8$weight<-out ##mean colony size as a fraction of mean regional size
+
+##divide the weight by the standard error (less weight given to estimates with more se)
+counts.m8$weight2<-ifelse(counts.m8$pred.se==0, counts.m8$weight, counts.m8$weight/counts.m8$pred.se)
 
 #counts.m8[which(duplicated(counts.m8$Colony)==F),] %>% group_by(Region) %>% summarise(sum(weight))
 
@@ -628,9 +682,9 @@ for (j in 1:length(unique(counts.m8$Colony))) {
   counts.m8$pred.norm[which(counts.m8$Colony==colony.temp)]<-norm.temp
 }
 
-##WEIGHT THE predictions BY POPULATION SIZE
+##WEIGHT THE predictions BY POPULATION SIZE (and variance)
 ##alternative is to use predictor that is already scaled to pop size
-regional.pred<-counts.m8 %>% group_by(Year, Region) %>% summarise(total=sum(Count, na.rm=T), pred.regional=sum(pred*weight), pred.se=sum(pred.se)) %>% data.frame()
+regional.pred<-counts.m8 %>% group_by(Year, Region) %>% summarise(total=sum(Count, na.rm=T), pred.regional=sum(pred*weight2)) %>% data.frame()
 
 ##replace missing years of counts with NA
 for (j in 1:nrow(regional.pred)) {
@@ -648,26 +702,42 @@ for (j in 1:length(unique(regional.pred$Region))) {
   data.plot<-subset(counts.m8, Region==region.temp)
   fig <- ggplot(data = data.plot, aes(x=Year))
   
-  ##plot the points with the normalized predictors OR the predictions with SE
-  #fig <- fig + geom_point(aes(y=Count)) + geom_path(aes(y=pred.norm))
-  fig <- fig + geom_path(aes(y=pred)) + geom_path(aes(y=pred+pred.se), lty="dashed") + geom_path(aes(y=pred-pred.se), lty="dashed")
+  fig <- fig + geom_point(aes(y=Count)) #+ geom_path(aes(y=pred.norm))
   
   fig <- fig + ggtitle(region.temp)
   fig <- fig + facet_wrap(~Colony, scales = "free_y")
   #fig <- fig + scale_y_continuous(sec.axis = sec_axis(~ .))
   fig
   
-  png(filename = str_c("fig.gam.",region.temp, ".colonies.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
+  png(filename = str_c("fig.",region.temp, ".counts.colonies.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
+  
+  fig <- ggplot(data = data.plot, aes(x=Year))
+  
+  ##plot the predictions with SE
+  fig <- fig + geom_path(aes(y=pred)) + geom_path(aes(y=pred+pred.se), lty="dashed") + geom_path(aes(y=pred-pred.se), lty="dashed")
+  fig <- fig + ylab("Trend")
+  fig <- fig + ggtitle(region.temp)
+  fig <- fig + facet_wrap(~Colony, scales = "free_y")
+  
+  ##fix y-axis limits
+  #fig <- fig + facet_wrap(~Colony)
+  #fig <- fig + scale_y_continuous(limits = c(-10,10))
+  
+  #fig <- fig + scale_y_continuous(sec.axis = sec_axis(~ .))
+  fig
+  
+  png(filename = str_c("fig.",region.temp, ".gam.colonies.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
   
   ##plot trends by region
   data.plot<-subset(regional.pred, Region==region.temp)
   fig <- ggplot(data = data.plot, aes(x=Year))
   fig <- fig + geom_point(aes(y=total))
   fig <- fig + geom_path(aes(y=normalize(pred.regional, range=c(min(total, na.rm=T), max(total, na.rm=T)), method="range")))
+  fig <- fig + ylab("Regional total & Trend")
   fig <- fig + ggtitle(region.temp)
   fig
   
-  png(filename = str_c("fig.gam.",region.temp, ".png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
+  png(filename = str_c("fig.",region.temp, ".gam.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
 }
 
 ##GAMM (poptrend)

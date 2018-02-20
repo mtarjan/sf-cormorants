@@ -23,10 +23,21 @@ source('DCCO_pop_analysis_code_5Feb2018.R')
 This manuscript describes options for analyzing trends in DCCO populations in the San Francisco Bay Area from 1985--2017.
 
 # Methods
-##Exponential and logrithmic groth models
-Following the methods of Manuwal et al (2000), I plotted raw regional counts using loess and standard error shading. I identified which regions followed exponential growth and which followed logistic growth by visualizing the ln-transformed regional counts. For the regions of the Bridges and South Farallon Islands, I identified subsets of years where data followed distinct trajectories and fit independent linear models for each data subset. I fit logistic growth equations for the regions of the North Bay, Outer Coast, and South Bay.
+##Exponential and logrithmic growth models
+Following the methods of Manuwal et al (2000), I plotted raw regional counts using loess and standard error shading. If there were multiple counts for a colony within a given year, I used the maximum count. I identified which regions followed exponential growth and which followed logistic growth by visualizing the ln-transformed regional counts and comparing the r-squared and p-values for both models. For the regions of the Bridges and South Farallon Islands, I identified subsets of years where data followed distinct trajectories and fit independent exponential models for each data subset. I fit logistic growth equations for the regions of the Outer Coast and South Bay.
 
-##Generalized Additive Mixed Models (GAMMs)
+##General Additive Mixed Models (GAMMs)
+Methods follow those of Shadish et al. 2014. GAMMs were devoped using the gam function in R. I compared multiple models and selected the model with the lowest AIC. The best model took the following form:
+
+count ~ year*colony + colony + survey type
+
+I modeled regional counts by assuming that the regional count in a given year is equal to the sum of the estimated colony counts. The estimated colony counts were weighted by colony size (relative to the overall regional size) and the standard error of the estimate, such that:
+
+E(x) = sum(p * c / r / s)
+
+where E(x) is the estimated regional count in year x, the sum occurs across all colonies in that region, p is the estimated colony count in year x, c is the mean estimated colony count across all years, r is the mean regional count across all years, and s is the standard error of the estimated colony count in year x.
+
+##Generalized Additive Mixed Models (GAMMs) with decomposed long-term and short-term trends
 Count data are frequently used to estimate population trends, but are subject to biases in data collection. Notably, raw counts are strongly affected by survey effort and survey dates and long-term trends can be biased by short-term annual shifts due to environmental variation. Our raw counts are likey subject to these effects. The North Bay and South Bay regions contain multiple (12+) DCCO nesting colonies, but not all sites were visited in each year and more sites were visited in the later years compared to the early years of the study. Site occupation also depends on day of the season. Birds arrive to breed in April, peak breeding occurs in June, and they depart in August. Nest counts increase and then decrease as the season progresses, so day of the season is an important covariate when inferring colony size. Furthermore, breeding attempts are likely dependent on site and food availability, which may show annual fluctuations that cause nest counts to deviate from the long-term population trend. Other potential covariates are survey type (aerial, boat, or ground) and the observing organization. To account for potential biases, we included notable covariates in our estimates of regional trends. Long-term population dynamics are frequently non-linear, so we used an approach that would allow for nonlinear trends. 
 
 We estimated regional trends in nest counts using Generalized Additive Mixed Models (GAMMs) in the poptrend package in R (Knape 2016). The count for a given colony in a given year was modeled as a function of a temporal random effect (year), a random site effect, and a fixed day of the season effect (except in the case of the Bridges region, which comprises only two sites so could not accomodate a day of the season effect). We compared this model to three alternatives: (1) temporal fixed effects, (2) temporal random effects, and (3) temporal random effects and a random site effect. Error estimates were drawn from the maximum likelihood table. For the purpose of applying the model, we assumed that the effect of covariates does not change over time (e.g. the day of the season effect is consistent across years). A complete description of the model is available in Knape (2016).
@@ -55,13 +66,14 @@ DCCO counts in the entirety of the San Francisco Bay Area are characterized by a
 
 #Discussion
 ##Dispersal from the Bridge Region
-We did not find quantitative evidence to support DCCO dispersal to any particular region following bridge construction in 2002 (Fig. 3), nor did we find evidence that dispersal was limited within the scale of the study area (Appendix 3). Uncovering the effect of bridge construction on DCCO dispersal may require studies at a larger scale or tagging of individuals.
+We did not find quantitative evidence to support DCCO dispersal to any particular region following bridge construction in 2002, nor did we find evidence that dispersal was limited within the scale of the study area. Uncovering the effect of bridge construction on DCCO dispersal may require studies at a larger scale or tagging of individuals.
 
 ##Works Cited
 Knape, J. (2016). Decomposing trends in Swedish bird populations using generalized additive mixed models. Journal of Applied Ecology, 53(6), 1852–1861. https://doi.org/10.1111/1365-2664.12720
 
 Manuwal, D. A., Carter, H. R., Zimmerman, T. S., & Orthmeyer, D. L. (2000). Biology and Conservation of the Common Murre in California, Oregon, Washington, and British Columbia Volume 1: Natural History and Population Trends. Information and Technology Report (Vol. 1).
 
+Shadish, W. R., Zuur, A. F., & Sullivan, K. J. (2014). Using generalized additive (mixed) models to analyze single case designs. Journal of School Psychology, 52(2), 149–178. https://doi.org/10.1016/j.jsp.2013.11.004
 
 # Tables
 Table 1. Site descriptions, including region, coordinates, and number of years with nest counts.
@@ -93,27 +105,27 @@ print(fig3)
 Fig 2. Counts of DCCO nests in each region around San Francisco Bay from `r min(counts$Year)` -- `r max(counts$Year)`. Points show raw counts summed across sites for each region. Data are plotted with a loess curve and standard error shading.
 
 ```{r, echo=FALSE}
-knitr::include_graphics(path="Fig6.Bridges.png")
+knitr::include_graphics(path="Fig6.Bridges.cutoff.png")
 ```
 Fig 3. Regional counts over time in the Bridge region with fitted model (fitted as linear model on ln-transformed data).
 
 ```{r, echo=FALSE}
 knitr::include_graphics(path="Fig6.North Bay.png")
 ```
-Fig 4. Regional counts over time in the North Bay region with fitted logistic model.
+Fig 4. Regional counts over time in the North Bay region with fitted exponential model.
 
 ```{r, echo=FALSE}
-knitr::include_graphics(path="Fig6.Outer Coast.png")
+knitr::include_graphics(path="Fig6.Outer Coast.cutoff.png")
 ```
 Fig 5. Regional counts over time in the Outer Coast region with fitted logistic model.
 
 ```{r, echo=FALSE}
-knitr::include_graphics(path="Fig6.South Bay.png")
+knitr::include_graphics(path="Fig6.South Bay.cutoff.png")
 ```
 Fig 6. Regional counts over time in the South Bay region with fitted logistic model.
 
 ```{r, echo=FALSE}
-knitr::include_graphics(path="Fig6.South Farallon Islands.png")
+knitr::include_graphics(path="Fig6.South Farallon Islands.cutoff.png")
 ```
 Fig 7. Regional counts over time in the South Farallon Islands region with fitted model (fitted as linear model on ln-transformed data).
 
