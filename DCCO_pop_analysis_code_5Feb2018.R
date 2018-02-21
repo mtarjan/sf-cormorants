@@ -21,6 +21,7 @@ counts<-read.xls("C:/Users/max/Desktop/Tarjan/Science/DCCO_counts_20Feb2018.xlsx
 
 ##RESTRICTIONS
 ##exclude seasonal total count type
+#counts<-subset(counts, Count.type != "Seasonal total" & Region != "" & Region != "NA" & Exclude.comments=="")
 counts<-subset(counts, Count.type != "Seasonal total" & Region != "" & Region != "NA")
 
 ##EXPAND DATA
@@ -63,6 +64,16 @@ mycols<-c("#E7298A", "#771155", "#114477", "#771122", "#DDDD77", "#1B9E77", "#66
 mean.colony.counts<-counts %>% group_by(Colony, Year, Region) %>% summarise(mean.count=round(mean(Count),0)) %>% data.frame()
 
 max.colony.counts<-counts %>% group_by(Colony, Year, Region) %>% summarise(max.count=round(max(Count),0)) %>% data.frame()
+
+##add survey type to max colony count
+max.colony.counts$Survey.type<-NA
+for (j in 1:nrow(max.colony.counts)) {
+  type.temp<-counts$Survey.type[which(counts$Colony==max.colony.counts$Colony[j] & counts$Year==max.colony.counts$Year[j] & counts$Count==max.colony.counts$max.count[j])]
+  #print(j); print(type.temp)
+  if (length(type.temp)>0){
+    max.colony.counts$Survey.type[j]<-as.character(type.temp)
+  }
+}
 
 ##summarize data by region
 #regional.counts<-counts %>% group_by(Region, Year) %>% summarise(total=sum(Count)) %>% data.frame()
@@ -353,7 +364,13 @@ for (j in 1:length(unique(regional.counts$Region))) {
   if (region.temp=="North Bay") {
     model.log<-nls(total~K/(1+((K-No)/No)*exp(-r*(Year-1986))),
                    start=list(K=300,No=20,r=0.5),data=dat.temp,trace=F)
-  } else {
+  } 
+  if (region.temp!="North Bay" & region.temp!="South Bay") {
+    model.log<-nls(total~K/(1+((K-No)/No)*exp(-r*(Year-1986))),
+                   start=list(K=800,No=1,r=0.5),data=dat.temp,trace=F)
+  }
+  
+  if (region.temp=="South Bay") {
     model.log<-nls(total~K/(1+((K-No)/No)*exp(-r*(Year-1986))),
                    start=list(K=800,No=1,r=0.5),data=dat.temp,trace=F)
   }
@@ -373,9 +390,9 @@ for (j in 1:length(unique(regional.counts$Region))) {
   K<-coefficients(model.log)[1]
   r<-coefficients(model.log)[3]
   
-  #No<-20
-  #K<-300
-  #r<-0.5
+  #No<-1
+  #K<-750
+  #r<-0.4
   
   fun.log<- function(x) K/(1+((K-No)/No)*exp(-r*(x-1986)))
   
@@ -384,7 +401,7 @@ for (j in 1:length(unique(regional.counts$Region))) {
   #fig6 <- fig6 + stat_function(fun=fun.log, size=1.25)
   #fig6
   
-  ##calculate r-square
+  ##calculate r-squared
   RSS.p <- sum(residuals(model.log)^2) ##residual sum of squares
   TSS <- sum((dat.temp$total - mean(dat.temp$total))^2)  # Total sum of squares
   log.rsq<-round(1 - (RSS.p/TSS),2)  # R-squared measure
@@ -405,7 +422,7 @@ for (j in 1:length(unique(regional.counts$Region))) {
     fig6 <- fig6 + stat_function(fun=fun1, xlim=c(1985, cutoff.temp-1), size=1.25)
     fig6 <- fig6 + stat_function(fun=fun2, xlim=c(cutoff.temp, 2017), size=1.25)
     
-    fig6 <- fig6 + geom_text(aes(x=2008, y=max(dat.temp$total)/7, label="time period     r-square     p-value"))
+    fig6 <- fig6 + geom_text(aes(x=2008, y=max(dat.temp$total)/7, label="time period     r-squared     p-value"))
     fig6 <- fig6 + geom_text(aes(x=2008, y=max(dat.temp$total)/10, label=str_c("1985-", cutoff.temp-1, "          ", round(summary(lm1)$r.squared,2),  "          ", round(coefficients(summary(lm1))[2,4], 3))))
     fig6 <- fig6 + geom_text(aes(x=2008, y=(max(dat.temp$total)/17), label=str_c(cutoff.temp, "-2017          ", round(summary(lm2)$r.squared,2),  "          ", round(coefficients(summary(lm2))[2,4], 3))))
   }
@@ -430,7 +447,7 @@ for (j in 1:length(unique(regional.counts$Region))) {
   fig6a <- fig6a + stat_function(fun=fun1.lm, xlim=c(1985, cutoff.temp-1), size=1.25)
   fig6a <- fig6a + stat_function(fun=fun2.lm, xlim=c(cutoff.temp, 2017), size=1.25)
   
-  fig6a <- fig6a + geom_text(aes(x=2008, y=min(log(dat.temp$total+0.01))+(max(log(dat.temp$total+0.01))-min(log(dat.temp$total+0.01)))/7, label="time period     r-square     p-value"))
+  fig6a <- fig6a + geom_text(aes(x=2008, y=min(log(dat.temp$total+0.01))+(max(log(dat.temp$total+0.01))-min(log(dat.temp$total+0.01)))/7, label="time period     r-squared     p-value"))
   fig6a <- fig6a + geom_text(aes(x=2008, y=min(log(dat.temp$total+0.01))+(max(log(dat.temp$total+0.01))-min(log(dat.temp$total+0.01)))/10, label=str_c("1985-", cutoff.temp-1, "          ", round(summary(lm1)$r.squared,2),  "          ", round(coefficients(summary(lm1))[2,4], 3))))
   fig6a <- fig6a + geom_text(aes(x=2008, y=min(log(dat.temp$total+0.01))+(max(log(dat.temp$total+0.01))-min(log(dat.temp$total+0.01)))/17, label=str_c(cutoff.temp, "-2017          ", round(summary(lm2)$r.squared,2),  "          ", round(coefficients(summary(lm2))[2,4], 3))))
   
@@ -452,7 +469,7 @@ for (j in 1:length(unique(regional.counts$Region))) {
   
   fig6b <- fig6b + stat_function(fun=fun.all, xlim=c(1985, 2017), size=1.25)
   
-  fig6b <- fig6b + geom_text(aes(x=2008, y=min(dat.temp$total)+(max(dat.temp$total)-min(dat.temp$total))/7, label="time period     r-square     p-value"))
+  fig6b <- fig6b + geom_text(aes(x=2008, y=min(dat.temp$total)+(max(dat.temp$total)-min(dat.temp$total))/7, label="time period     r-squared     p-value"))
   fig6b <- fig6b + geom_text(aes(x=2008, y=min(dat.temp$total)+(max(dat.temp$total)-min(dat.temp$total))/10, label=str_c("1985-2017          ", round(summary(lm.all)$r.squared,2),  "          ", round(coefficients(summary(lm.all))[2,4], 3))))
   
   fig6b <- fig6b + theme_classic()
@@ -471,10 +488,16 @@ for (j in 1:length(unique(regional.counts$Region))) {
   
   png(filename = str_c("fig6.",region.temp, ".png"), units="in", width=6*1.5, height=4*1.5,  res=200);print(fig6b); dev.off()
   
+  out.temp<-c(as.character(region.temp), "1985-2017", round(coefficients(lm.all)[2],2), round(coefficients(summary(lm.all))[2,2], 3), round(coefficients(summary(lm.all))[2,4], 3), round(exp(coefficients(lm.all)[2])*100-100,2))
   out.temp1<-c(as.character(region.temp), str_c("1985-", cutoff.temp), round(coefficients(lm1)[2],2), round(coefficients(summary(lm1))[2,2], 3), round(coefficients(summary(lm1))[2,4], 3), round(exp(coefficients(lm1)[2])*100-100,2))
   ##percent annual increase is exp(slope)
   out.temp2<-c(as.character(region.temp), str_c(cutoff.temp, "-2017"), round(coefficients(lm2)[2],2), round(coefficients(summary(lm2))[2,2], 3), round(coefficients(summary(lm2))[2,4], 3), round(exp(coefficients(lm2)[2])*100-100,2))
-  out<-rbind(out, out.temp1, out.temp2)
+  
+  if (region.temp %in% c("Bridges", "South Farallon Islands")) {
+    out<-rbind(out, out.temp1, out.temp2)
+  } else {
+    out<-rbind(out, out.temp)
+  }
 }
 
 #out<-data.frame(out); colnames(out)<-c("Region", "start", "end", "slope", "se", "lower95CI", "upper95CI", "pvalue", "percent.annual.increase", "percent.upper95CI", "percent.lower95CI")
@@ -537,6 +560,10 @@ M8<-gam(Count ~ s(Year, by=Colony) + Colony + Survey.type,
         data = counts,
         family = poisson)
 
+M9<-gam(Count ~ s(Year, by=Colony) + day + Survey.type,
+        data = counts,
+        family = poisson)
+
 #M9<-gam(Count ~ s(Year, by=Colony) + Colony + day + time.period,
 #        data = counts,
 #        family = poisson)
@@ -551,9 +578,9 @@ M8<-gam(Count ~ s(Year, by=Colony) + Colony + Survey.type,
 ##look for lowest AIC
 
 ##quasi models to deal with overdispersion
-#M9q<-gam(Count ~ s(Year, by=Colony) + Colony + day + Survey.type,
-#         data = counts,
-#         family = quasipoisson)
+M9q<-gam(Count ~ s(Year, by=Colony) + Colony + day + Survey.type,
+         data = counts,
+         family = quasipoisson)
 
 ##plot model M8
 #P8<-predict(M8, se.fit = T)
@@ -648,7 +675,7 @@ counts.m8<-cbind(new.dat, pred, pred.se)
 ##use mean or max colony counts instead
 counts.temp<-max.colony.counts; counts.temp$colony.year<-str_c(as.character(counts.temp$Colony), counts.temp$Year)
 counts.m8.temp<-counts.m8; counts.m8.temp$colony.year<-str_c(as.character(counts.m8$Colony), counts.m8$Year)
-counts.m8<-dplyr::left_join(counts.m8.temp, y=subset(counts.temp, select=c(colony.year, max.count)), by = c("colony.year","colony.year"))
+counts.m8<-dplyr::left_join(counts.m8.temp, y=subset(counts.temp, select=c(colony.year, Survey.type, max.count)), by = c("colony.year","colony.year"))
 counts.m8<-subset(counts.m8, select=-colony.year)
 colnames(counts.m8)[ncol(counts.m8)]<-"Count"
 head(counts.m8)
@@ -669,7 +696,17 @@ counts.m8$weight<-out ##mean colony size as a fraction of mean regional size
 ##divide the weight by the standard error (less weight given to estimates with more se)
 counts.m8$weight2<-ifelse(counts.m8$pred.se==0, counts.m8$weight, counts.m8$weight/counts.m8$pred.se)
 
-#counts.m8[which(duplicated(counts.m8$Colony)==F),] %>% group_by(Region) %>% summarise(sum(weight))
+##subset counts.m8 to years when there is known info about each colony
+counts.m8.sub<-dim(0)
+for (j in 1:length(unique(counts.m8$Colony))) {
+  colony.temp<-unique(counts.m8$Colony)[j]
+  min.year<-min(subset(counts.m8, Colony==colony.temp & is.na(Count)==F)$Year, na.rm=T)
+  max.year<-max(subset(counts.m8, Colony==colony.temp & is.na(Count)==F)$Year, na.rm=T)
+  
+  counts.m8.sub<-rbind(counts.m8.sub, subset(counts.m8, Colony==colony.temp & Year >= min.year & Year <= max.year))
+}
+
+head(counts.m8.sub)
 
 ##add normalized predictor by colony
 counts.m8$pred.norm<-rep(NA, nrow(counts.m8))
@@ -702,16 +739,16 @@ for (j in 1:length(unique(regional.pred$Region))) {
   data.plot<-subset(counts.m8, Region==region.temp)
   fig <- ggplot(data = data.plot, aes(x=Year))
   
-  fig <- fig + geom_point(aes(y=Count)) #+ geom_path(aes(y=pred.norm))
+  fig <- fig + geom_point(aes(y=Count, color=Survey.type.y)) #+ geom_path(aes(y=pred.norm))
+  fig <- fig + scale_colour_discrete(name="Survey type")
   
   fig <- fig + ggtitle(region.temp)
   fig <- fig + facet_wrap(~Colony, scales = "free_y")
-  #fig <- fig + scale_y_continuous(sec.axis = sec_axis(~ .))
   fig
   
-  png(filename = str_c("fig.",region.temp, ".counts.colonies.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
+  png(filename = str_c("fig.",region.temp, ".counts.colonies.png"), units="in", width=6.5, height=5.5,  res=200);print(fig); dev.off()
   
-  fig <- ggplot(data = data.plot, aes(x=Year))
+  fig <- ggplot(data = subset(counts.m8.sub, Region==region.temp), aes(x=Year))
   
   ##plot the predictions with SE
   fig <- fig + geom_path(aes(y=pred)) + geom_path(aes(y=pred+pred.se), lty="dashed") + geom_path(aes(y=pred-pred.se), lty="dashed")
@@ -751,12 +788,13 @@ library(poptrend)
 regions<-unique(counts$Region)
 
 j<-2
-trFit <- ptrend(Count ~ trend(Year, tempRE = TRUE, type = "smooth") + s(Colony, bs="re") ##site as a random effect
-                #+ s(day)
+trFit <- ptrend(Count ~ trend(Year, tempRE = TRUE, type = "smooth") 
+                + s(Colony, bs="re") ##site as a random effect
+                + s(day)
                 #+ s(bridge.dist)
                 #+ Region
                 + Survey.type
-                , family = quasipoisson, data = subset(counts, Region==regions[j])) ##subset by region
+                , family = quasipoisson, data = subset(counts, Region==regions[j] & Year >1990)) ##subset by region
 #, family = quasipoisson, data = counts) ##all regions
 
 ## Check the model fit
@@ -768,8 +806,8 @@ plot(trFit, ciBase=mean, main=regions[j])
 change(trFit, 2002, 2017)
 
 ##plot predicted pop change for each region
-par(mfrow = c(2,2), bty="L", mar=c(4,4,4,2))
-counts.temp<-subset(counts, Region!="" & Region!="South Farallon Islands")
+par(mfrow = c(3,2), bty="L", mar=c(4,4,4,2))
+counts.temp<-subset(counts, Region!="")
 
 trend.estimates<-dim(0)
 regional.models<-list()
@@ -779,7 +817,11 @@ for (j in 1:length(unique(counts.temp$Region))) {
   
   if (reg.temp=="Bridges") { ##if the region is bridges, don't include day. else include day as a fixed effect
     trFit <- ptrend(Count ~ trend(Year, tempRE = TRUE, type = "smooth") + s(Colony, bs="re"), family = quasipoisson, data = data.temp) ##site as a random effect
-  } else {
+  }
+  if (reg.temp == "South Farallon Islands") {
+    trFit <- ptrend(Count ~ trend(Year, tempRE = TRUE, type = "smooth") + Survey.type, family = quasipoisson, data = data.temp) ##no site effect
+  }
+  if (reg.temp != "Bridges" & reg.temp != "South Farallon Islands") {
     trFit <- ptrend(Count ~ trend(Year, tempRE = TRUE, type = "smooth") + s(Colony, bs="re") + s(day), family = quasipoisson, data = data.temp) ##site as a random effect
   }
   
