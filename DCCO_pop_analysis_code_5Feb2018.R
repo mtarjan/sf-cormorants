@@ -560,9 +560,9 @@ M8<-gam(Count ~ s(Year, by=Colony) + Colony + Survey.type,
         data = counts,
         family = poisson)
 
-M9<-gam(Count ~ s(Year, by=Colony) + day + Survey.type,
-        data = counts,
-        family = poisson)
+#M9<-gam(Count ~ s(Year, by=Colony) + day + Survey.type,
+#        data = counts,
+#        family = poisson)
 
 #M9<-gam(Count ~ s(Year, by=Colony) + Colony + day + time.period,
 #        data = counts,
@@ -578,9 +578,9 @@ M9<-gam(Count ~ s(Year, by=Colony) + day + Survey.type,
 ##look for lowest AIC
 
 ##quasi models to deal with overdispersion
-M9q<-gam(Count ~ s(Year, by=Colony) + Colony + day + Survey.type,
-         data = counts,
-         family = quasipoisson)
+#M9q<-gam(Count ~ s(Year, by=Colony) + Colony + day + Survey.type,
+#         data = counts,
+#         family = quasipoisson)
 
 ##plot model M8
 #P8<-predict(M8, se.fit = T)
