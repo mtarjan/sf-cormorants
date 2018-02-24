@@ -738,39 +738,38 @@ for (j in 1:length(unique(regional.pred$Region))) {
   ##plot trends by colony
   data.plot<-subset(counts.m8, Region==region.temp)
   fig <- ggplot(data = data.plot, aes(x=Year))
-  
   fig <- fig + geom_point(aes(y=Count, color=Survey.type.y)) #+ geom_path(aes(y=pred.norm))
   fig <- fig + scale_colour_discrete(name="Survey type")
-  
   fig <- fig + ggtitle(region.temp)
   fig <- fig + facet_wrap(~Colony, scales = "free_y")
   fig
   
-  png(filename = str_c("fig.",region.temp, ".counts.colonies.png"), units="in", width=6.5, height=5.5,  res=200);print(fig); dev.off()
-  
-  fig <- ggplot(data = subset(counts.m8.sub, Region==region.temp), aes(x=Year))
+  if (length(unique(data.plot$Colony))==2) {
+    png(filename = str_c("fig.",region.temp, ".counts.colonies.png"), units="in", width=6.5, height=3.5,  res=200);print(fig); dev.off()
+  } else {
+    png(filename = str_c("fig.",region.temp, ".counts.colonies.png"), units="in", width=6.5, height=5.5,  res=200);print(fig); dev.off()
+  }
   
   ##plot the predictions with SE
+  data.plot<-subset(counts.m8.sub, Region==region.temp)
+  fig <- ggplot(data = data.plot, aes(x=Year))
   fig <- fig + geom_path(aes(y=pred)) + geom_path(aes(y=pred+pred.se), lty="dashed") + geom_path(aes(y=pred-pred.se), lty="dashed")
   fig <- fig + ylab("Trend")
   fig <- fig + ggtitle(region.temp)
   fig <- fig + facet_wrap(~Colony, scales = "free_y")
-  
-  ##fix y-axis limits
-  #fig <- fig + facet_wrap(~Colony)
-  #fig <- fig + scale_y_continuous(limits = c(-10,10))
-  
-  #fig <- fig + scale_y_continuous(sec.axis = sec_axis(~ .))
   fig
   
   png(filename = str_c("fig.",region.temp, ".gam.colonies.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
   
   ##plot trends by region
   data.plot<-subset(regional.pred, Region==region.temp)
+  range<-c(min(data.plot$total, na.rm=T), max(data.plot$total, na.rm=T))
+  range.pred<-round(c(min(data.plot$pred.regional, na.rm=T), max(data.plot$pred.regional, na.rm=T)),0)
   fig <- ggplot(data = data.plot, aes(x=Year))
   fig <- fig + geom_point(aes(y=total))
-  fig <- fig + geom_path(aes(y=normalize(pred.regional, range=c(min(total, na.rm=T), max(total, na.rm=T)), method="range")))
-  fig <- fig + ylab("Regional total & Trend")
+  fig <- fig + geom_path(aes(y=normalize(pred.regional, range=range, method="range")))
+  fig <- fig + ylab("Total regional count")
+  fig <- fig + scale_y_continuous(sec.axis = sec_axis(~ ., name = "Regional trend", breaks = seq(range[1], range[2], (range[2]-range[1])/10), labels = seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10)))
   fig <- fig + ggtitle(region.temp)
   fig
   

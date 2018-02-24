@@ -16,14 +16,16 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r, echo=FALSE, warning=FALSE, include=FALSE}
 source('DCCO_pop_analysis_code_5Feb2018.R')
+figure.num<-0
+table.num<-0
 ```
 
 
 # Background
 This manuscript describes options for analyzing trends in DCCO populations in the San Francisco Bay Area from 1985--2017.
 
-# Methods
-##Exponential and logrithmic growth models
+#Approach 1: Exponential and logrithmic growth models
+##Method description
 Following the methods of Manuwal et al (2000), I plotted raw regional counts using loess and standard error shading. If there were multiple counts for a colony within a given year, I used the maximum count. I identified which regions followed exponential growth and which followed logistic growth by visualizing the ln-transformed regional counts and comparing the r-squared and p-values for both models. For the regions of the Bridges and South Farallon Islands, I identified subsets of years where data followed distinct trajectories and fit independent exponential models for each data subset. I fit logistic growth equations for the regions of the Outer Coast and South Bay. 
 
 The logistic growth equations took the following form:
@@ -32,7 +34,52 @@ count~K/(1+((K-N0)/N0)*exp(-r*(Year-1986)))
 
 where K is the carrying capacity, N0 is the initial population size, and r is the rate of increase (Gotelli 2008). I used the nls function in R to estimate K, N0, and r.
 
-##General Additive Mixed Models (GAMMs)
+##Results
+```{r, echo=FALSE}
+table.num<-table.num+1
+```
+
+Table `r table.num`. Percent annual change in estimated nest counts by region. Estimates are based on log-linearized functions for discrete time periods.
+```{r, echo=FALSE}
+knitr::kable(slope.table)
+```
+
+```{r, echo=FALSE}
+knitr::include_graphics(path="Fig6.Bridges.cutoff.png")
+figure.num<-figure.num+1
+```
+Fig `r figure.num`. Regional counts over time in the Bridge region with fitted model (fitted as linear model on ln-transformed data).
+
+######Page break
+```{r, echo=FALSE}
+knitr::include_graphics(path="Fig6.North Bay.png")
+figure.num<-figure.num+1
+```
+Fig `r figure.num`. Regional counts over time in the North Bay region with fitted exponential model.
+
+######Page break
+```{r, echo=FALSE}
+knitr::include_graphics(path="Fig6.Outer Coast.cutoff.png")
+figure.num<-figure.num+1
+```
+Fig `r figure.num`. Regional counts over time in the Outer Coast region with fitted logistic model.
+
+######Page break
+```{r, echo=FALSE}
+knitr::include_graphics(path="Fig6.South Bay.cutoff.png")
+figure.num<-figure.num+1
+```
+Fig `r figure.num`. Regional counts over time in the South Bay region with fitted logistic model.
+
+######Page break
+```{r, echo=FALSE}
+knitr::include_graphics(path="Fig6.South Farallon Islands.cutoff.png")
+figure.num<-figure.num+1
+```
+Fig `r figure.num`. Regional counts over time in the South Farallon Islands region with fitted model (fitted as linear model on ln-transformed data).
+
+#Approach 2: General Additive Mixed Models (GAMMs)
+##Method description
 Count data are frequently used to estimate population trends, but are subject to biases in data collection. Notably, raw counts are strongly affected by survey effort and survey dates and long-term trends can be biased by short-term annual shifts due to environmental variation. Our raw counts are likey subject to these effects. The North Bay and South Bay regions contain multiple (12+) DCCO nesting colonies, but not all sites were visited in each year and more sites were visited in the later years compared to the early years of the study. Site occupation also depends on day of the season. Birds arrive to breed in April, peak breeding occurs in June, and they depart in August. Nest counts increase and then decrease as the season progresses, so day of the season is an important covariate when inferring colony size. Other potential covariates are survey type (aerial, boat, or ground) and the observing organization. To account for potential biases, we included notable covariates in our estimates of regional trends. Long-term population dynamics are frequently non-linear, so we used an approach that would allow for nonlinear trends.
 
 General additive mixed models are superior to using exponential and logistic growth equations because it is possible to include an interaction term between colony and year, which allows each colony to growth nonlinearly over time. Estimating the regional counts by summing colony counts and weighting those counts by estimated error corrects for years when certain colonies were not visited. This method also allows for additive terms to inform colony size, so I was able to test the effect of count date and survey type on colony counts. Both these covariates were likely to confound our estimates of regional population size.
@@ -47,123 +94,67 @@ E(x) = sum(p * c / r / s)
 
 where E(x) is the estimated regional count in year x, the sum occurs across all colonies in that region, p is the estimated colony count in year x, c is the mean estimated colony count across all years, r is the mean regional count across all years, and s is the standard error of the estimated colony count in year x.
 
-##Generalized Additive Mixed Models (GAMMs) with decomposed long-term and short-term trends
- 
-In addition to the important covariates mentioned in the previous section, breeding attempts are likely dependent on site and food availability, which may show annual fluctuations that cause nest counts to deviate from the long-term population trend. To account for short-term fluctuations that deviate from the long-term trend, we estimated regional trends in nest counts using Generalized Additive Mixed Models (GAMMs) in the poptrend package in R (Knape 2016). The count for a given colony in a given year was modeled as a function of a temporal random effect (year), a random site effect, and a fixed day of the season effect (except in the case of the Bridges region, which comprises only two sites so could not accomodate a day of the season effect). We compared this model to three alternatives: (1) temporal fixed effects, (2) temporal random effects, and (3) temporal random effects and a random site effect. Error estimates were drawn from the maximum likelihood table. For the purpose of applying the model, we assumed that the effect of covariates does not change over time (e.g. the day of the season effect is consistent across years). A complete description of the model is available in Knape (2016).
+##Results
 
-The selected model included the random effects of site and year and a day of the season fixed effect. The selected full model resulted in better model fit in all cases where it could be applied (it minimized residual error). Other covariates, such as survey method (aerial, boat, or ground) and distance to the bridges, had little effect on the qualitative results and did not improve model fit, so were excluded from the model.
-
-##Works Cited
-Gotelli, N. J. 2008. A Primer of Ecology, 4th edition. Sinauer Associates, Inc. Sunderland, MA. 290 pp.
-
-Knape, J. (2016). Decomposing trends in Swedish bird populations using generalized additive mixed models. Journal of Applied Ecology, 53(6), 1852–1861. https://doi.org/10.1111/1365-2664.12720
-
-Manuwal, D. A., Carter, H. R., Zimmerman, T. S., & Orthmeyer, D. L. (2000). Biology and Conservation of the Common Murre in California, Oregon, Washington, and British Columbia Volume 1: Natural History and Population Trends. Information and Technology Report (Vol. 1).
-
-Shadish, W. R., Zuur, A. F., & Sullivan, K. J. (2014). Using generalized additive (mixed) models to analyze single case designs. Journal of School Psychology, 52(2), 149–178. https://doi.org/10.1016/j.jsp.2013.11.004
-
-# Tables
-Table 1. Site descriptions, including region, coordinates, and number of years with nest counts.
-```{r, echo=FALSE}
-knitr::kable(ms.table1)
-```
-
-######Page break
-Table 2. Percent annual change in estimated nest counts by region. Estimates are based on log-linearized functions for discrete time periods.
-```{r, echo=FALSE}
-knitr::kable(slope.table)
-```
-
-######Page break
-Table 3. Percent annual change in estimated nest counts by region according to poptrend models (GAMM with longg-term and short-term trends modeled discretely).
-```{r, echo=FALSE}
-knitr::kable(trend.estimates)
-```
-
-
-# Figures
-```{r, echo=FALSE}
-knitr::include_graphics(path="C:/Users/max/Desktop/Tarjan/Science/GIS/DCCO_GIS/DCCO_sites_map_28Aug2017.jpg")
-```
-Fig 1. Map of DCCO nesting sites from 1985-2016 in the San Francisco Bay Area.
-
-######
-```{r, echo=FALSE, fig.height=8, fig.width=7.5, warning=FALSE}
-print(fig3)
-```
-Fig 2. Counts of DCCO nests in each region around San Francisco Bay from `r min(counts$Year)` -- `r max(counts$Year)`. Points show raw counts summed across sites for each region. Data are plotted with a loess curve and standard error shading.
-
-######
-```{r, echo=FALSE}
-knitr::include_graphics(path="Fig6.Bridges.cutoff.png")
-```
-Fig 3. Regional counts over time in the Bridge region with fitted model (fitted as linear model on ln-transformed data).
-
-######Page break
-```{r, echo=FALSE}
-knitr::include_graphics(path="Fig6.North Bay.png")
-```
-Fig 4. Regional counts over time in the North Bay region with fitted exponential model.
-
-######Page break
-```{r, echo=FALSE}
-knitr::include_graphics(path="Fig6.Outer Coast.cutoff.png")
-```
-Fig 5. Regional counts over time in the Outer Coast region with fitted logistic model.
-
-######Page break
-```{r, echo=FALSE}
-knitr::include_graphics(path="Fig6.South Bay.cutoff.png")
-```
-Fig 6. Regional counts over time in the South Bay region with fitted logistic model.
-
-######Page break
-```{r, echo=FALSE}
-knitr::include_graphics(path="Fig6.South Farallon Islands.cutoff.png")
-```
-Fig 7. Regional counts over time in the South Farallon Islands region with fitted model (fitted as linear model on ln-transformed data).
-
-######Page break
 ```{r, echo=FALSE}
 knitr::include_graphics(path="fig.Bridges.counts.colonies.png")
 knitr::include_graphics(path="fig.Bridges.gam.colonies.png")
 knitr::include_graphics(path="fig.Bridges.gam.png")
+figure.num<-figure.num+1
 ```
-Fig 8. Colony counts (top), GAM colony trends with SE (middle), and GAM regional trend (bottom) for Bridges region.
+Fig `r figure.num`. Colony counts (top), GAM colony trends with SE (middle), and GAM regional trend (bottom) for Bridges region. 
 
 ######Page break
 ```{r, echo=FALSE}
 knitr::include_graphics(path="fig.North Bay.counts.colonies.png")
 knitr::include_graphics(path="fig.North Bay.gam.colonies.png")
 knitr::include_graphics(path="fig.North Bay.gam.png")
+figure.num<-figure.num+1
 ```
-Fig 9. Colony counts (top), GAM colony trends with SE (middle), and GAM regional trend (bottom) for North Bay region.
+Fig `r figure.num`. Colony counts (top), GAM colony trends with SE (middle), and GAM regional trend (bottom) for North Bay region.
 
 ######Page break
 ```{r, echo=FALSE}
 knitr::include_graphics(path="fig.Outer Coast.counts.colonies.png")
 knitr::include_graphics(path="fig.Outer Coast.gam.colonies.png")
 knitr::include_graphics(path="fig.Outer Coast.gam.png")
+figure.num<-figure.num+1
 ```
-Fig 10. Colony counts (top), GAM colony trends with SE (middle), and GAM regional trend (bottom) for Outer Coast region.
+Fig `r figure.num`. Colony counts (top), GAM colony trends with SE (middle), and GAM regional trend (bottom) for Outer Coast region.
 
 ######Page break
 ```{r, echo=FALSE}
 knitr::include_graphics(path="fig.South Bay.counts.colonies.png")
 knitr::include_graphics(path="fig.South Bay.gam.colonies.png")
 knitr::include_graphics(path="fig.South Bay.gam.png")
+figure.num<-figure.num+1
 ```
-Fig 11. Colony counts (top), GAM colony trends with SE (middle), and GAM regional trend (bottom) for South Bay region.
+Fig `r figure.num`. Colony counts (top), GAM colony trends with SE (middle), and GAM regional trend (bottom) for South Bay region.
 
 ######Page break
 ```{r, echo=FALSE}
 knitr::include_graphics(path="fig.South Farallon Islands.counts.colonies.png")
 knitr::include_graphics(path="fig.South Farallon Islands.gam.colonies.png")
 knitr::include_graphics(path="fig.South Farallon Islands.gam.png")
+figure.num<-figure.num+1
 ```
-Fig 12. Colony counts (top), GAM colony trends with SE (middle), and GAM regional trend (bottom) for South Farallon Islands region.
+Fig `r figure.num`. Colony counts (top), GAM colony trends with SE (middle), and GAM regional trend (bottom) for South Farallon Islands region.
 
-######Page break
+#Approach 3: Generalized Additive Mixed Models (GAMMs) with decomposed long-term and short-term trends
+##Method description
+In addition to the important covariates mentioned in the previous section, breeding attempts are likely dependent on site and food availability, which may show annual fluctuations that cause nest counts to deviate from the long-term population trend. To account for short-term fluctuations that deviate from the long-term trend, we estimated regional trends in nest counts using Generalized Additive Mixed Models (GAMMs) in the poptrend package in R (Knape 2016). The count for a given colony in a given year was modeled as a function of a temporal random effect (year), a random site effect, and a fixed day of the season effect (except in the case of the Bridges region, which comprises only two sites so could not accomodate a day of the season effect). We compared this model to three alternatives: (1) temporal fixed effects, (2) temporal random effects, and (3) temporal random effects and a random site effect. Error estimates were drawn from the maximum likelihood table. For the purpose of applying the model, we assumed that the effect of covariates does not change over time (e.g. the day of the season effect is consistent across years). A complete description of the model is available in Knape (2016).
+
+The selected model included the random effects of site and year and a day of the season fixed effect. The selected full model resulted in better model fit in all cases where it could be applied (it minimized residual error). Other covariates, such as survey method (aerial, boat, or ground) and distance to the bridges, had little effect on the qualitative results and did not improve model fit, so were excluded from the model.
+
+##Results
+```{r, echo=FALSE}
+table.num<-table.num+1
+```
+Table `r table.num`. Percent annual change in estimated nest counts by region according to poptrend models (GAMM with longg-term and short-term trends modeled discretely).
+```{r, echo=FALSE}
+knitr::kable(trend.estimates)
+```
+
 ```{r, echo=FALSE, fig.height=8, fig.width=6.5}
 par(mfrow = c(3,2), bty="L", mar=c(4,4,4,2), mgp=c(2,0.5,0))
 for (j in 1:length(regional.models)){
@@ -171,9 +162,11 @@ for (j in 1:length(regional.models)){
   plot(trFit, main=names(regional.models)[j], ylab="Trend in nest counts", ciBase=mean, plotGrid = F)
 }
 par(mfrow=c(1,1))
+
+figure.num<-figure.num+1
 ```
   
-Fig 13. Trend estimates for DCCO nest count data. Trend estimates are plotted relative to the mean value (i.e. the mean value is set to 1). Estimates were generated using a GAMM that estimates nest counts as a function of year (temporal random effect), a random site effect, and a day of the season fixed effect (except in the case of the Bridge Region, which did not have enough degrees of freedom to include the day of the season effect). Points and bars indicate the mean and 95% CI for the annual count estimates. The black trendlines and blue shading indicate the mean and 95% CI for the long-term trend. Green and red lines indicate significant increases and decreases in the trend at the 5% level respectively. Green and red shading above the x-axis indicate significant increases in the second derivative (i.e. trend acceleration/deceleration) at the 5% level respectively.
+Fig `r figure.num`. Trend estimates for DCCO nest count data. Trend estimates are plotted relative to the mean value (i.e. the mean value is set to 1). Estimates were generated using a GAMM that estimates nest counts as a function of year (temporal random effect), a random site effect, and a day of the season fixed effect (except in the case of the Bridge Region, which did not have enough degrees of freedom to include the day of the season effect). Points and bars indicate the mean and 95% CI for the annual count estimates. The black trendlines and blue shading indicate the mean and 95% CI for the long-term trend. Green and red lines indicate significant increases and decreases in the trend at the 5% level respectively. Green and red shading above the x-axis indicate significant increases in the second derivative (i.e. trend acceleration/deceleration) at the 5% level respectively.
 
 ######Page break
 ```{r, echo=FALSE, fig.height=6, fig.width=7.5}
@@ -191,9 +184,10 @@ plot(data.temp$Year, data.temp$total, pch=4, axes=F, ylab="", xlab="")
 axis(side=4)
 mtext(side = 4, line = 2, 'DCCO Nest Counts')
 
+figure.num<-figure.num+1
 ```
   
-Fig 14. Trend estimate for all regions in the San Francisco Bay Area with the exception of the Bridges. DCCO nest counts appear as x's.
+Fig `r figure.num`. Trend estimate for all regions in the San Francisco Bay Area with the exception of the Bridges. DCCO nest counts appear as x's.
 
 ######Page break
 ```{r, echo=FALSE, fig.height=6, fig.width=7.5}
@@ -210,6 +204,43 @@ par(new=T)
 plot(data.temp$Year, data.temp$total, pch=4, axes=F, ylab="", xlab="")
 axis(side=4)
 mtext(side = 4, line = 2, 'DCCO Nest Counts')
+
+figure.num<-figure.num+1
 ```
   
-Fig 15. Trend estimate for all regions in the San Francisco Bay Area including the Bridges. DCCO nest counts appear as x's.
+Fig `r figure.num`. Trend estimate for all regions in the San Francisco Bay Area including the Bridges. DCCO nest counts appear as x's.
+
+#Works Cited
+Gotelli, N. J. 2008. A Primer of Ecology, 4th edition. Sinauer Associates, Inc. Sunderland, MA. 290 pp.
+
+Knape, J. (2016). Decomposing trends in Swedish bird populations using generalized additive mixed models. Journal of Applied Ecology, 53(6), 1852–1861. https://doi.org/10.1111/1365-2664.12720
+
+Manuwal, D. A., Carter, H. R., Zimmerman, T. S., & Orthmeyer, D. L. (2000). Biology and Conservation of the Common Murre in California, Oregon, Washington, and British Columbia Volume 1: Natural History and Population Trends. Information and Technology Report (Vol. 1).
+
+Shadish, W. R., Zuur, A. F., & Sullivan, K. J. (2014). Using generalized additive (mixed) models to analyze single case designs. Journal of School Psychology, 52(2), 149–178. https://doi.org/10.1016/j.jsp.2013.11.004
+
+#Additional Tables
+```{r, echo=FALSE}
+table.num<-table.num+1
+```
+Table `r table.num`. Site descriptions, including region, coordinates, and number of years with nest counts.
+```{r, echo=FALSE}
+knitr::kable(ms.table1)
+```
+
+
+#Additional Figures
+```{r, echo=FALSE}
+knitr::include_graphics(path="C:/Users/max/Desktop/Tarjan/Science/GIS/DCCO_GIS/DCCO_sites_map_28Aug2017.jpg")
+
+figure.num<-figure.num+1
+```
+Fig `r figure.num`. Map of DCCO nesting sites from 1985-2016 in the San Francisco Bay Area.
+
+######Page break
+```{r, echo=FALSE, fig.height=8, fig.width=7.5, warning=FALSE}
+print(fig3)
+
+figure.num<-figure.num+1
+```
+Fig `r figure.num`. Counts of DCCO nests in each region around San Francisco Bay from `r min(counts$Year)` -- `r max(counts$Year)`. Points show raw counts summed across sites for each region. Data are plotted with a loess curve and standard error shading.
