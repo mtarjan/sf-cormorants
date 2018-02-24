@@ -19,6 +19,13 @@ library(BBmisc) ##required for normalize function
 #counts<-read.csv("DCCO_counts_18Aug2017.csv")
 counts<-read.xls("C:/Users/max/Desktop/Tarjan/Science/DCCO_counts_20Feb2018.xlsx")
 
+##make edits to add incomplete year info
+counts$Incomplete.year[which(counts$Region=="North Bay" & counts$Year %in% c(1991, 1992, 1995:2002))]<-"yes" ##north bay region missing knight island counts 1995-2002
+counts$Incomplete.year[which(counts$Region=="Outer Coast" & counts$Year ==2000)]<-"yes" ##Outer Coast: For 2000, we have a 0 for Hog Island, but Lake Merced is ND. So I think the 0 in 2000 in this Chart should be removed
+counts$Incomplete.year[which(counts$Region=="South Bay" & counts$Year %in% c(1992, 1997, 1998, 2000:2002, 2004, 2006:2013, 2016:2017))]<-"yes"##South Bay: Most importantly, San Mateo Bridge (~ 100 nests) is ND for several years, especially after 2005. We know it’s been active
+counts$Incomplete.year[which(counts$Region=="South Farallon Islands" & counts$Year %in% c(1985, 1986, 1991, 1992, 2009, 2010, 2012))]<-"yes" ##eliminate years with ground data only
+
+
 ##RESTRICTIONS
 ##exclude seasonal total count type
 #counts<-subset(counts, Count.type != "Seasonal total" & Region != "" & Region != "NA" & Exclude.comments=="")
@@ -38,11 +45,13 @@ counts$time.period<-counts$Year
 counts$time.period[which(counts$time.period<=2002)]<-"pre"
 counts$time.period[which(counts$time.period>2002 & counts$time.period != "pre")]<-"post"
 
+##get data for years with nearly complete data only, given Phil's designations
+counts.complete<-subset(counts, is.na(Incomplete.year))
 
 ##VIEW DATA
 
 ##TABLE OF SAMPLE SIZE
-ms.table1<-data.frame(count(x=counts, Region, Colony, lat, long));head(ms.table1)
+ms.table1<-data.frame(count(x=unique(subset(counts, select=c(Region, Colony, lat, long, Year))), Region, Colony, lat, long));head(ms.table1)
 
 #background basemap...need W, N, E, S bounds
 #mapImage <- get_map(location = c(-121.9361, 37.6285, -122.1849, 37.4078),
@@ -61,6 +70,7 @@ mycols<-c("#E7298A", "#771155", "#114477", "#771122", "#DDDD77", "#1B9E77", "#66
 
 ##first summarize by colony and year to get average if there are multiple counts from different agencies for one year
 ##can also alter this code to subset by survey type
+##decide if using counts or counts complete for the regional counts
 mean.colony.counts<-counts %>% group_by(Colony, Year, Region) %>% summarise(mean.count=round(mean(Count),0)) %>% data.frame()
 
 max.colony.counts<-counts %>% group_by(Colony, Year, Region) %>% summarise(max.count=round(max(Count),0)) %>% data.frame()
@@ -651,6 +661,9 @@ sum(E8^2) / (M8$df.res)
 # and +/- the se.fit for the standard errors
 #lines(new.dat, gam.pred$fit + gam.pred$se.fit, lty = "dotted")
 #lines(new.dat, gam.pred$fit, type = "l", lty = "dotted")
+
+##GENERATE CONFIDENCE INTERVALS FOR GAM MODEL USING SIMULATION
+##https://stat.ethz.ch/pipermail/r-help/2011-April/275632.html
 
 ##plot sum of site counts for a given region
 new.dat<-table(counts$Year, as.character(counts$Colony)) %>% data.frame()
