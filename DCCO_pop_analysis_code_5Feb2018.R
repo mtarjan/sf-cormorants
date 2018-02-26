@@ -588,7 +588,7 @@ M8<-gam(Count ~ s(Year, by=Colony) + Colony + Survey.type,
 ##look for lowest AIC
 
 ##quasi models to deal with overdispersion
-#M9q<-gam(Count ~ s(Year, by=Colony) + Colony + day + Survey.type,
+#M9q<-gam(Count ~ s(Year, by=Colony) + day + Survey.type,
 #         data = counts,
 #         family = quasipoisson)
 
