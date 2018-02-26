@@ -84,9 +84,9 @@ Count data are frequently used to estimate population trends, but are subject to
 
 General additive mixed models are superior to using exponential and logistic growth equations because it is possible to include an interaction term between colony and year, which allows each colony to growth nonlinearly over time. Estimating the regional counts by summing colony counts and weighting those counts by estimated error corrects for years when certain colonies were not visited. This method also allows for additive terms to inform colony size, so I was able to test the effect of count date and survey type on colony counts. Both these covariates were likely to confound our estimates of regional population size.
 
-Methods follow those of Shadish et al. 2014. GAMMs were devoped using the gam function in R. I compared multiple models and selected the model with the lowest AIC. The best model took the following form:
+Methods follow those of Shadish et al. 2014. GAMMs were devoped using the gam function in R. The model took the following form:
 
-count ~ year*colony + colony + survey type
+count ~ year*colony + day + survey type
 
 I modeled regional counts by assuming that the regional count in a given year is equal to the sum of the estimated colony counts. The estimated colony counts were weighted by colony size (relative to the overall regional size) and the standard error of the estimate, such that:
 
@@ -139,6 +139,20 @@ knitr::include_graphics(path="fig.South Farallon Islands.gam.png")
 figure.num<-figure.num+1
 ```
 Fig `r figure.num`. Colony counts (top), GAM colony trends with SE (middle), and GAM regional trend (bottom) for South Farallon Islands region.
+
+######Page break
+```{r, echo=FALSE}
+knitr::include_graphics(path="fig.day.effect.png")
+figure.num<-figure.num+1
+```
+Fig `r figure.num`. Effect of count date (ie day of the year) illustrated using predicted trend values for a standardized site, year, and survey type. This plot illustrates that counts later in the season are more similar to the latent colony size than counts earlier in the season (among the range of count dates included in this study). For a given nest count, counting on day 200 compared to day 100 leads to a `r round((subset(counts.day, day==200)$pred-subset(counts.day, day==100)$pred)/(subset(counts.day, day==200)$pred+subset(counts.day, day==100)$pred)*100, 2)`% difference in the magnitude of the colony trend estimate.
+
+######Page break
+```{r, echo=FALSE}
+knitr::include_graphics(path="fig.type.effect.png")
+figure.num<-figure.num+1
+```
+Fig `r figure.num`. Effect of survey type illustreated using the predicted trend value for a standard site, year, and day with standard error bars. This plot illustrates that survey types lead to differences in counts. This plot implies that Ground counts are most representative of latent colony sizes, followed by aerial, boat, and combination boat/ground counts. Therefore, Boat/Ground, Boat, and Aerial surveys underestimate latent colony sizes to a greater degree than Ground surveys. Aerial surveys that report a given colony count (e.g. 200 nests) result in trend estimates that are `r round((subset(counts.type, Survey.type=="Aerial")$pred-subset(counts.type, Survey.type=="Ground")$pred)/(subset(counts.type, Survey.type=="Aerial")$pred+subset(counts.type, Survey.type=="Ground")$pred)*100, 2)`% larger than a Ground survey reporting the same colony count. 
 
 #Approach 3: Generalized Additive Mixed Models (GAMMs) with decomposed long-term and short-term trends
 ##Method description
