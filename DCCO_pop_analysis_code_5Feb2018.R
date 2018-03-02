@@ -699,19 +699,34 @@ head(counts.m8)
 
 #plot(pred~Count, data=counts.m8)
 
-##get a weight for the predictions based on the average size of the colony / the size of the regional counts
+##get a weight for the predictions based on relative colony size (the average size of the colony / the size of the regional counts) and relative error (estimated erro / sum of error for all sites in the region in that year). relative colony size and relative error should each sum to one across colonies in year x for each region
 out<-dim(0)
 for (j in 1:nrow(counts.m8)){
   colony.temp<-counts.m8$Colony[j]
   region.temp<-counts.m8$Region[j]
-  regional.counts.temp<-subset(counts.m8, Region==region.temp) %>% group_by(Region, Year) %>% summarise(total=sum(Count, na.rm=T)) %>% data.frame
-  out.temp<-mean(subset(counts.m8, Colony==colony.temp)$Count, na.rm=T)/mean(regional.counts.temp$total, na.rm=T) ##weight is the mean colony count / mean count of the region
-  out<-c(out, out.temp)
+  colony.mean<-mean(subset(counts.m8, Colony==colony.temp)$Count, na.rm=T)
+  region.mean<-subset(counts.m8, Region==region.temp) %>% group_by(Colony) %>% summarise(col.mean = mean(Count, na.rm=T)) %>% data.frame() %>% summarise(region.mean=mean(col.mean)) %>% as.numeric()
+  region.n<-length(unique(subset(counts.m8, Region==region.temp)$Colony))
+  size.weight<-colony.mean/region.mean/region.n
+  #regional.counts.temp<-subset(counts.m8, Region==region.temp) %>% group_by(Region, Year) %>% summarise(total=sum(Count, na.rm=T)) %>% data.frame
+  #regional.mean<-mean(regional.counts.temp$total, na.rm=T)
+  
+  ##error weight
+  ##error at that colony in year x divided by sum of regional error in year x
+  year.temp<-counts.m8$Year[j]
+  error.year<-subset(counts.m8, Year==year.temp & Region==region.temp) %>% summarise(error.year=sum(pred.se)) %>% as.numeric()
+  error.weight<-counts.m8$pred.se[j]/error.year
+  
+  out<-rbind(out, c(size.weight, error.weight))
 }
-counts.m8$weight<-out ##mean colony size as a fraction of mean regional size
+counts.m8$weight<-out[,1] ##mean colony size as a fraction of mean regional size
+counts.m8$error.weight<-out[,2]
+
+##check that weights within each year sum to 1
+counts.m8 %>% group_by(Year, Region) %>% summarize(weights=sum(weight))
 
 ##divide the weight by the standard error (less weight given to estimates with more se)
-counts.m8$weight2<-ifelse(counts.m8$pred.se==0, counts.m8$weight, counts.m8$weight/counts.m8$pred.se)
+#counts.m8$weight2<-ifelse(counts.m8$pred.se==0, counts.m8$weight, counts.m8$weight/counts.m8$pred.se)
 
 ##subset counts.m8 to years when there is known info about each colony
 counts.m8.sub<-dim(0)
@@ -726,19 +741,19 @@ for (j in 1:length(unique(counts.m8$Colony))) {
 head(counts.m8.sub)
 
 ##add normalized predictor by colony
-counts.m8$pred.norm<-rep(NA, nrow(counts.m8))
-for (j in 1:length(unique(counts.m8$Colony))) {
-  colony.temp<-unique(counts.m8$Colony)[j]
-  dat.temp<-subset(counts.m8, Colony==colony.temp)
+counts.m8.sub$pred.norm<-rep(NA, nrow(counts.m8.sub))
+for (j in 1:length(unique(counts.m8.sub$Colony))) {
+  colony.temp<-unique(counts.m8.sub$Colony)[j]
+  dat.temp<-subset(counts.m8.sub, Colony==colony.temp)
   range.min<-min(dat.temp$Count, na.rm=T)
   range.max<-max(dat.temp$Count, na.rm=T)
   norm.temp<-normalize(dat.temp$pred, range=c(range.min, range.max), method="range")
-  counts.m8$pred.norm[which(counts.m8$Colony==colony.temp)]<-norm.temp
+  counts.m8.sub$pred.norm[which(counts.m8.sub$Colony==colony.temp)]<-norm.temp
 }
 
 ##WEIGHT THE predictions BY POPULATION SIZE (and variance)
 ##alternative is to use predictor that is already scaled to pop size
-regional.pred<-counts.m8 %>% group_by(Year, Region) %>% summarise(total=sum(Count, na.rm=T), pred.regional=sum(pred*weight2)) %>% data.frame()
+regional.pred<-counts.m8 %>% group_by(Year, Region) %>% summarise(total=sum(Count, na.rm=T), pred.regional=sum(pred*weight*error.weight)) %>% data.frame()
 
 ##replace missing years of counts with NA
 for (j in 1:nrow(regional.pred)) {
@@ -753,12 +768,14 @@ for (j in 1:length(unique(regional.pred$Region))) {
   region.temp<-unique(regional.pred$Region)[j]
   
   ##plot trends by colony
-  data.plot<-subset(counts.m8, Region==region.temp)
+  data.plot<-subset(counts.m8.sub, Region==region.temp)
   fig <- ggplot(data = data.plot, aes(x=Year))
-  fig <- fig + geom_point(aes(y=Count, color=Survey.type.y)) #+ geom_path(aes(y=pred.norm))
+  fig <- fig + geom_point(aes(y=Count, color=Survey.type.y))
+  fig <- fig + geom_path(aes(y=pred.norm))
   fig <- fig + scale_colour_discrete(name="Survey type")
   fig <- fig + ggtitle(region.temp)
   fig <- fig + facet_wrap(~Colony, scales = "free_y")
+  fig <- fig + scale_x_continuous(breaks = 1985:2017, labels=1985:2017) + theme(axis.text.x = element_text(angle = 45, hjust=1))
   fig
   
   if (length(unique(data.plot$Colony))==2) {
@@ -774,20 +791,22 @@ for (j in 1:length(unique(regional.pred$Region))) {
   fig <- fig + ylab("Trend")
   fig <- fig + ggtitle(region.temp)
   fig <- fig + facet_wrap(~Colony, scales = "free_y")
+  fig <- fig + scale_x_continuous(breaks = 1985:2017, labels=1985:2017) + theme(axis.text.x = element_text(angle = 45, hjust=1))
   fig
   
   png(filename = str_c("fig.",region.temp, ".gam.colonies.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
   
   ##plot trends by region
-  data.plot<-subset(regional.pred, Region==region.temp)
-  range<-c(min(data.plot$total, na.rm=T), max(data.plot$total, na.rm=T))
-  range.pred<-round(c(min(data.plot$pred.regional, na.rm=T), max(data.plot$pred.regional, na.rm=T)),0)
-  fig <- ggplot(data = data.plot, aes(x=Year))
+  data.plot.region<-subset(regional.pred, Region==region.temp & Year >= min(data.plot$Year) & Year <= max(data.plot$Year))
+  range<-c(min(data.plot.region$total, na.rm=T), max(data.plot.region$total, na.rm=T))
+  range.pred<-round(c(min(data.plot.region$pred.regional, na.rm=T), max(data.plot.region$pred.regional, na.rm=T)),0)
+  fig <- ggplot(data = data.plot.region, aes(x=Year))
   fig <- fig + geom_point(aes(y=total))
   fig <- fig + geom_path(aes(y=normalize(pred.regional, range=range, method="range")))
   fig <- fig + ylab("Total regional count")
   fig <- fig + scale_y_continuous(sec.axis = sec_axis(~ ., name = "Regional trend", breaks = seq(range[1], range[2], (range[2]-range[1])/10), labels = seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10)))
   fig <- fig + ggtitle(region.temp)
+  fig <- fig + scale_x_continuous(breaks = 1985:2017, labels=1985:2017) + theme(axis.text.x = element_text(angle = 45, hjust=1))
   fig
   
   png(filename = str_c("fig.",region.temp, ".gam.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
