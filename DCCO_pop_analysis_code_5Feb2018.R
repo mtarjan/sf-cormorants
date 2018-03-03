@@ -715,7 +715,7 @@ for (j in 1:nrow(counts.m8)){
   ##error at that colony in year x divided by sum of regional error in year x
   year.temp<-counts.m8$Year[j]
   error.year<-subset(counts.m8, Year==year.temp & Region==region.temp) %>% summarise(error.year=sum(pred.se)) %>% as.numeric()
-  error.weight<-counts.m8$pred.se[j]/error.year
+  error.weight<-1-counts.m8$pred.se[j]/error.year
   
   out<-rbind(out, c(size.weight, error.weight))
 }
@@ -775,7 +775,7 @@ for (j in 1:length(unique(regional.pred$Region))) {
   fig <- fig + scale_colour_discrete(name="Survey type")
   fig <- fig + ggtitle(region.temp)
   fig <- fig + facet_wrap(~Colony, scales = "free_y")
-  fig <- fig + scale_x_continuous(breaks = 1985:2017, labels=1985:2017) + theme(axis.text.x = element_text(angle = 45, hjust=1))
+  fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 2), labels=seq(1985, 2017, 2)) + theme(axis.text.x = element_text(angle = 45, hjust=1))
   fig
   
   if (length(unique(data.plot$Colony))==2) {
@@ -791,7 +791,7 @@ for (j in 1:length(unique(regional.pred$Region))) {
   fig <- fig + ylab("Trend")
   fig <- fig + ggtitle(region.temp)
   fig <- fig + facet_wrap(~Colony, scales = "free_y")
-  fig <- fig + scale_x_continuous(breaks = 1985:2017, labels=1985:2017) + theme(axis.text.x = element_text(angle = 45, hjust=1))
+  fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 2), labels=seq(1985, 2017, 2)) + theme(axis.text.x = element_text(angle = 45, hjust=1))
   fig
   
   png(filename = str_c("fig.",region.temp, ".gam.colonies.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
@@ -806,7 +806,7 @@ for (j in 1:length(unique(regional.pred$Region))) {
   fig <- fig + ylab("Total regional count")
   fig <- fig + scale_y_continuous(sec.axis = sec_axis(~ ., name = "Regional trend", breaks = seq(range[1], range[2], (range[2]-range[1])/10), labels = seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10)))
   fig <- fig + ggtitle(region.temp)
-  fig <- fig + scale_x_continuous(breaks = 1985:2017, labels=1985:2017) + theme(axis.text.x = element_text(angle = 45, hjust=1))
+  fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 2), labels=seq(1985, 2017, 2)) + theme(axis.text.x = element_text(angle = 45, hjust=1))
   fig
   
   png(filename = str_c("fig.",region.temp, ".gam.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
