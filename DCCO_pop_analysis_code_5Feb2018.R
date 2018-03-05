@@ -774,7 +774,7 @@ edf.sum<-edf.df %>% group_by(Colony) %>% summarise(edf.sum=sum(edf)) %>% data.fr
 counts.m8<-dplyr::left_join(counts.m8, y=edf.sum, by = c("Colony","Colony"))
 counts.m8$pred.sd<-counts.m8$pred.se*sqrt(counts.m8$edf.sum+1)
 
-pred.rep<-apply(X = subset(counts.m8, select=c(pred, pred.sd)), MARGIN = 1, FUN = rnorm, n = 100) %>% data.frame() %>% t()
+pred.rep<-apply(X = subset(counts.m8, select=c(pred, pred.sd)), MARGIN = 1, FUN = rnorm, n = 10000) %>% data.frame() %>% t()
 regional.pred.rep<-regional.pred
 for (j in 1:ncol(pred.rep)) {
   counts.temp<-counts.m8
@@ -834,12 +834,18 @@ for (j in 1:length(unique(regional.pred$Region))) {
   ##plot trends by region
   data.plot.region<-subset(regional.pred, Region==region.temp & Year >= min(data.plot$Year) & Year <= max(data.plot$Year))
   range<-c(min(data.plot.region$total, na.rm=T), max(data.plot.region$total, na.rm=T))
-  range.pred<-round(c(min(data.plot.region$pred.regional, na.rm=T), max(data.plot.region$pred.regional, na.rm=T)),0)
+  #range.pred<-round(c(min(data.plot.region$pred.regional, na.rm=T), max(data.plot.region$pred.regional, na.rm=T)),0)
+  range.pred<-round(c(min(data.plot.region$r.pred.mean-data.plot.region$r.pred.sd, na.rm=T), max(data.plot.region$r.pred.mean+data.plot.region$r.pred.sd, na.rm=T)),0) ##switch to mean from replicated
+  
   fig <- ggplot(data = data.plot.region, aes(x=Year))
-  fig <- fig + geom_point(aes(y=total))
-  fig <- fig + geom_path(aes(y=normalize(pred.regional, range=range, method="range")))
-  fig <- fig + ylab("Total regional count")
-  fig <- fig + scale_y_continuous(sec.axis = sec_axis(~ ., name = "Regional trend", breaks = seq(range[1], range[2], (range[2]-range[1])/10), labels = seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10)))
+  #fig <- fig + geom_point(aes(y=total))
+  #fig <- fig + geom_path(aes(y=normalize(pred.regional, range=range, method="range")))
+  fig <- fig + geom_path(aes(y=r.pred.mean))
+  fig <- fig + geom_path(aes(y=r.pred.mean+r.pred.sd), lty="dashed")
+  fig <- fig + geom_path(aes(y=r.pred.mean-r.pred.sd), lty="dashed")
+  fig <- fig + ylab("Regional trend")
+  fig <- fig + geom_point(aes(y=normalize(x = total, range=range.pred, method="range")))
+  fig <- fig + scale_y_continuous(breaks=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), sec.axis = sec_axis(~ ., name = "Total regional count", breaks = seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels = round(seq(range[1], range[2], (range[2]-range[1])/10), 0)))
   fig <- fig + ggtitle(region.temp)
   fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 2), labels=seq(1985, 2017, 2)) + theme(axis.text.x = element_text(angle = 45, hjust=1))
   fig
