@@ -570,9 +570,9 @@ library(lattice) ##for plotting
 #        data = counts,
 #        family = poisson)
 
-M9<-gam(Count ~ s(Year, by=Colony) + day + Survey.type,
-        data = counts,
-        family = poisson)
+#M9<-gam(Count ~ s(Year, by=Colony) + day + Survey.type,
+#        data = counts,
+#        family = poisson)
 
 #M9<-gam(Count ~ s(Year, by=Colony) + Colony + day + time.period,
 #        data = counts,
@@ -581,6 +581,10 @@ M9<-gam(Count ~ s(Year, by=Colony) + day + Survey.type,
 #M10<-gam(Count ~ s(Year, by=Colony) + Colony + day + Survey.type,
 #        data = counts,
 #        family = poisson)
+
+M11<-gam(Count ~ s(Year, by=Colony) + s(day) + Survey.type,
+        data = counts,
+        family = poisson)
 
 #aic.results<-AIC(M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12)
 #round(aic.results, 0)
@@ -593,7 +597,7 @@ M9<-gam(Count ~ s(Year, by=Colony) + day + Survey.type,
 #         family = quasipoisson)
 
 ##SELECT MODEL TO PLOT
-model.plot<-M9
+model.plot<-M11
 
 ##plot model M8
 #P8<-predict(M8, se.fit = T)
@@ -717,6 +721,8 @@ for (j in 1:nrow(counts.m8)){
   error.year<-subset(counts.m8, Year==year.temp & Region==region.temp) %>% summarise(error.year=sum(pred.se)) %>% as.numeric()
   error.weight<-1-counts.m8$pred.se[j]/error.year
   
+  if (length(unique(subset(counts.m8, Region==region.temp)$Colony))==1) {error.weight<-1} ##if there is only one colony in the region, then the error weight is 1
+  
   out<-rbind(out, c(size.weight, error.weight))
 }
 counts.m8$weight<-out[,1] ##mean colony size as a fraction of mean regional size
@@ -751,9 +757,38 @@ for (j in 1:length(unique(counts.m8.sub$Colony))) {
   counts.m8.sub$pred.norm[which(counts.m8.sub$Colony==colony.temp)]<-norm.temp
 }
 
+##GET REGIONAL PREDICTIONS
 ##WEIGHT THE predictions BY POPULATION SIZE (and variance)
-##alternative is to use predictor that is already scaled to pop size
 regional.pred<-counts.m8 %>% group_by(Year, Region) %>% summarise(total=sum(Count, na.rm=T), pred.regional=sum(pred*weight*error.weight)) %>% data.frame()
+
+##ITERATE TO GET MEAN REGIONAL PREDICTION AND CI
+##replace pred by randomly selected pred within a range of values
+##assume predictions come from a normal distribution with se==pred.se
+##assume sd = se * sqrt(df+1)
+##add df to counts.m8
+edf.colony<-subset(M11$edf, str_detect(names(M11$edf), pattern="Colony"))
+names(edf.colony)<-str_sub(names(edf.colony), 15, -3)
+edf.df<-data.frame(Colony=names(edf.colony), edf=edf.colony)
+edf.sum<-edf.df %>% group_by(Colony) %>% summarise(edf.sum=sum(edf)) %>% data.frame()
+
+counts.m8<-dplyr::left_join(counts.m8, y=edf.sum, by = c("Colony","Colony"))
+counts.m8$pred.sd<-counts.m8$pred.se*sqrt(counts.m8$edf.sum+1)
+
+pred.rep<-apply(X = subset(counts.m8, select=c(pred, pred.sd)), MARGIN = 1, FUN = rnorm, n = 100) %>% data.frame() %>% t()
+regional.pred.rep<-regional.pred
+for (j in 1:ncol(pred.rep)) {
+  counts.temp<-counts.m8
+  counts.temp$pred<-pred.rep[,j] ##replace prediction with replicate prediction
+  regional.pred.temp<-counts.temp %>% group_by(Year, Region) %>% summarise(pred.regional=sum(pred*weight*error.weight)) %>% data.frame()
+  regional.pred.rep<-cbind(regional.pred.rep, r.pred.rep=regional.pred.temp$pred.regional)
+}
+
+##get mean regional prediction and CI
+r.pred.mean<-subset(regional.pred.rep, select=str_detect(names(regional.pred.rep), pattern="r.pred.rep")) %>% apply(MARGIN = 1, FUN = mean) %>% as.numeric() ##take only replicates
+r.pred.sd<-subset(regional.pred.rep, select=str_detect(names(regional.pred.rep), pattern="r.pred.rep")) %>% apply(MARGIN = 1, FUN = sd) %>% as.numeric()
+
+regional.pred$r.pred.mean<-r.pred.mean
+regional.pred$r.pred.sd<-r.pred.sd
 
 ##replace missing years of counts with NA
 for (j in 1:nrow(regional.pred)) {
