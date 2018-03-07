@@ -20,16 +20,16 @@ library(BBmisc) ##required for normalize function
 counts<-read.xls("C:/Users/max/Desktop/Tarjan/Science/DCCO_counts_20Feb2018.xlsx")
 
 ##make edits to add incomplete year info
-counts$Incomplete.year[which(counts$Region=="North Bay" & counts$Year %in% c(1991, 1992, 1995:2002))]<-"yes" ##north bay region missing knight island counts 1995-2002
-counts$Incomplete.year[which(counts$Region=="Outer Coast" & counts$Year ==2000)]<-"yes" ##Outer Coast: For 2000, we have a 0 for Hog Island, but Lake Merced is ND. So I think the 0 in 2000 in this Chart should be removed
-counts$Incomplete.year[which(counts$Region=="South Bay" & counts$Year %in% c(1992, 1997, 1998, 2000:2002, 2004, 2006:2013, 2016:2017))]<-"yes"##South Bay: Most importantly, San Mateo Bridge (~ 100 nests) is ND for several years, especially after 2005. We know it’s been active
-counts$Incomplete.year[which(counts$Region=="South Farallon Islands" & counts$Year %in% c(1985, 1986, 1991, 1992, 2009, 2010, 2012))]<-"yes" ##eliminate years with ground data only
+#counts$Incomplete.year[which(counts$Region=="North Bay" & counts$Year %in% c(1991, 1992, 1995:2002))]<-"yes" ##north bay region missing knight island counts 1995-2002
+#counts$Incomplete.year[which(counts$Region=="Outer Coast" & counts$Year ==2000)]<-"yes" ##Outer Coast: For 2000, we have a 0 for Hog Island, but Lake Merced is ND. So I think the 0 in 2000 in this Chart should be removed
+#counts$Incomplete.year[which(counts$Region=="South Bay" & counts$Year %in% c(1992, 1997, 1998, 2000:2002, 2004, 2006:2013, 2016:2017))]<-"yes"##South Bay: Most importantly, San Mateo Bridge (~ 100 nests) is ND for several years, especially after 2005. We know it’s been active
+#counts$Incomplete.year[which(counts$Region=="South Farallon Islands" & counts$Year %in% c(1985, 1986, 1991, 1992, 2009, 2010, 2012))]<-"yes" ##eliminate years with ground data only
 
 
 ##RESTRICTIONS
 ##exclude seasonal total count type
-#counts<-subset(counts, Count.type != "Seasonal total" & Region != "" & Region != "NA" & Exclude.comments=="")
-counts<-subset(counts, Count.type != "Seasonal total" & Region != "" & Region != "NA")
+counts<-subset(counts, Count.type != "Seasonal total" & Region != "" & Region != "NA" & Exclude.comments=="")
+#counts<-subset(counts, Count.type != "Seasonal total" & Region != "" & Region != "NA")
 
 ##EXPAND DATA
 
@@ -46,7 +46,7 @@ counts$time.period[which(counts$time.period<=2002)]<-"pre"
 counts$time.period[which(counts$time.period>2002 & counts$time.period != "pre")]<-"post"
 
 ##get data for years with nearly complete data only, given Phil's designations
-counts.complete<-subset(counts, is.na(Incomplete.year))
+#counts.complete<-subset(counts, is.na(Incomplete.year))
 
 ##VIEW DATA
 
@@ -347,172 +347,7 @@ fig3d
 
 ##table with slope of ln(N)- estimate, SE, lower 95% CI, upper, p-value, % annual increase (estimate, upper and lower CI). for regressions across different time periods by region/site
 
-##FIGURE 6
-##linear regression of log count sums (ie regional counts)
-
-##use my regional counts
-#regional.counts<-regional.counts.org
-
-out<-dim(0) ##output for table
-for (j in 1:length(unique(regional.counts$Region))) {
-  region.temp<-unique(regional.counts$Region)[j]
-  dat.temp<-subset(regional.counts, subset = Region ==region.temp) ##take regional data only
-  
-  ##get equations for two separate pieces
-  cutoff.temp<-cutoff$X2[which(as.character(cutoff$X1)==as.character(region.temp))]
-  #lm1<-lm(formula = log(total)~Year, data=subset(dat.temp, Year < cutoff.temp & total>0))
-  #lm2<-lm(formula = log(total)~Year, data=subset(dat.temp, Year >= cutoff.temp & total >0))
-  
-  lm1<-lm(formula = log(total+0.01)~Year, data=subset(dat.temp, Year < cutoff.temp))
-  lm2<-lm(formula = log(total+0.01)~Year, data=subset(dat.temp, Year >= cutoff.temp))
-  
-  ##make linear model for all data
-  lm.all<-lm(formula = log(total+0.01)~Year, data=dat.temp)
-  
-  ##make an equation for logistic growth
-  
-  if (region.temp=="North Bay") {
-    model.log<-nls(total~K/(1+((K-No)/No)*exp(-r*(Year-1986))),
-                   start=list(K=300,No=20,r=0.5),data=dat.temp,trace=F)
-  } 
-  if (region.temp!="North Bay" & region.temp!="South Bay") {
-    model.log<-nls(total~K/(1+((K-No)/No)*exp(-r*(Year-1986))),
-                   start=list(K=800,No=1,r=0.5),data=dat.temp,trace=F)
-  }
-  
-  if (region.temp=="South Bay") {
-    model.log<-nls(total~K/(1+((K-No)/No)*exp(-r*(Year-1986))),
-                   start=list(K=800,No=1,r=0.5),data=dat.temp,trace=F)
-  }
-  
-  
-  ##get functions from equations
-  fun1<-function(x) exp(coefficients(lm1)[1])*exp(coefficients(lm1)[2]*x)
-  fun2<-function(x) exp(coefficients(lm2)[1])*exp(coefficients(lm2)[2]*x)
-  fun.all<-function(x) exp(coefficients(lm.all)[1])*exp(coefficients(lm.all)[2]*x)
-  
-  fun1.lm<-function(x) coefficients(lm1)[2]*x+coefficients(lm1)[1]
-  fun2.lm<-function(x) coefficients(lm2)[2]*x+coefficients(lm2)[1]
-  
-  fun.lm.all<-function(x) coefficients(lm.all)[2]*x+coefficients(lm.all)[1]
-  
-  No<-coefficients(model.log)[2]
-  K<-coefficients(model.log)[1]
-  r<-coefficients(model.log)[3]
-  
-  #No<-1
-  #K<-750
-  #r<-0.4
-  
-  fun.log<- function(x) K/(1+((K-No)/No)*exp(-r*(x-1986)))
-  
-  #fig6 <- ggplot(data = dat.temp, aes(x = Year, y=total))
-  #fig6 <- fig6 + geom_point(size=2)
-  #fig6 <- fig6 + stat_function(fun=fun.log, size=1.25)
-  #fig6
-  
-  ##calculate r-squared
-  RSS.p <- sum(residuals(model.log)^2) ##residual sum of squares
-  TSS <- sum((dat.temp$total - mean(dat.temp$total))^2)  # Total sum of squares
-  log.rsq<-round(1 - (RSS.p/TSS),2)  # R-squared measure
-  
-  ##make plot of counts and both equations; list r and p values on plot
-  fig6 <- ggplot(data = dat.temp, aes(x = Year, y=total))
-  fig6 <- fig6 + geom_point(size=2)
-  fig6 <- fig6 + facet_wrap(~Region, strip.position="top", scales="free") ##split up sites with facets
-  fig6 <- fig6 + ylab("Number of DCCO nests")
-  fig6 <- fig6 + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0), limits=c(1985,2017))
-  fig6 <- fig6 + scale_y_continuous(breaks=seq(0, 2500, 100), expand=c(0,0), limits = c(0, NA))
-  
-  if (region.temp %in% c("Outer Coast", "South Bay", "North Bay")) {
-    fig6 <- fig6 + stat_function(fun=fun.log, size=1.25)
-    fig6 <- fig6 + geom_text(aes(x=2008, y=max(dat.temp$total)/10, label=str_c("r-squared = ",log.rsq,  "; p = ", round(coefficients(summary(model.log))[3,4], 3))))
-    
-  } else {
-    fig6 <- fig6 + stat_function(fun=fun1, xlim=c(1985, cutoff.temp-1), size=1.25)
-    fig6 <- fig6 + stat_function(fun=fun2, xlim=c(cutoff.temp, 2017), size=1.25)
-    
-    fig6 <- fig6 + geom_text(aes(x=2008, y=max(dat.temp$total)/7, label="time period     r-squared     p-value"))
-    fig6 <- fig6 + geom_text(aes(x=2008, y=max(dat.temp$total)/10, label=str_c("1985-", cutoff.temp-1, "          ", round(summary(lm1)$r.squared,2),  "          ", round(coefficients(summary(lm1))[2,4], 3))))
-    fig6 <- fig6 + geom_text(aes(x=2008, y=(max(dat.temp$total)/17), label=str_c(cutoff.temp, "-2017          ", round(summary(lm2)$r.squared,2),  "          ", round(coefficients(summary(lm2))[2,4], 3))))
-  }
-  
-  fig6 <- fig6 + theme_classic()
-  fig6 <- fig6 + theme(panel.spacing = unit(0.25, "in"))
-  fig6 <- fig6 + theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
-  fig6 <- fig6 + theme(axis.title.y = element_text(margin = margin(r=1, unit="line")))
-  fig6 <- fig6 + theme(strip.background = element_rect(fill=NULL, linetype = "blank"))
-  fig6 <- fig6 + theme(text = element_text(size=16))
-  fig6
-  
-  ##PLOT 6a. on a ln scale with linear functions
-  
-  fig6a <- ggplot(data = dat.temp, aes(x = Year, y=log(total)))
-  fig6a <- fig6a + geom_point(size=2)
-  fig6a <- fig6a + facet_wrap(~Region, strip.position="top", scales="free") ##split up sites with facets
-  fig6a <- fig6a + ylab("ln(Number of DCCO nests)")
-  fig6a <- fig6a + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0), limits=c(1985,2017))
-  #fig6a <- fig6a + scale_y_continuous(breaks=seq(0, 2500, 100), expand=c(0,0), limits = c(0, NA))
-  
-  fig6a <- fig6a + stat_function(fun=fun1.lm, xlim=c(1985, cutoff.temp-1), size=1.25)
-  fig6a <- fig6a + stat_function(fun=fun2.lm, xlim=c(cutoff.temp, 2017), size=1.25)
-  
-  fig6a <- fig6a + geom_text(aes(x=2008, y=min(log(dat.temp$total+0.01))+(max(log(dat.temp$total+0.01))-min(log(dat.temp$total+0.01)))/7, label="time period     r-squared     p-value"))
-  fig6a <- fig6a + geom_text(aes(x=2008, y=min(log(dat.temp$total+0.01))+(max(log(dat.temp$total+0.01))-min(log(dat.temp$total+0.01)))/10, label=str_c("1985-", cutoff.temp-1, "          ", round(summary(lm1)$r.squared,2),  "          ", round(coefficients(summary(lm1))[2,4], 3))))
-  fig6a <- fig6a + geom_text(aes(x=2008, y=min(log(dat.temp$total+0.01))+(max(log(dat.temp$total+0.01))-min(log(dat.temp$total+0.01)))/17, label=str_c(cutoff.temp, "-2017          ", round(summary(lm2)$r.squared,2),  "          ", round(coefficients(summary(lm2))[2,4], 3))))
-  
-  fig6a <- fig6a + theme_classic()
-  fig6a <- fig6a + theme(panel.spacing = unit(0.25, "in"))
-  fig6a <- fig6a + theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
-  fig6a <- fig6a + theme(axis.title.y = element_text(margin = margin(r=1, unit="line")))
-  fig6a <- fig6a + theme(strip.background = element_rect(fill=NULL, linetype = "blank"))
-  fig6a <- fig6a + theme(text = element_text(size=16))
-  fig6a
-  
-  ##PLOT 6b. linear function for all data. regular scale
-  
-  fig6b <- ggplot(data = dat.temp, aes(x = Year, y=total))
-  fig6b <- fig6b + geom_point(size=2)
-  fig6b <- fig6b + facet_wrap(~Region, strip.position="top", scales="free") ##split up sites with facets
-  fig6b <- fig6b + ylab("Number of DCCO nests")
-  fig6b <- fig6b + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0), limits=c(1985,2017))
-  
-  fig6b <- fig6b + stat_function(fun=fun.all, xlim=c(1985, 2017), size=1.25)
-  
-  fig6b <- fig6b + geom_text(aes(x=2008, y=min(dat.temp$total)+(max(dat.temp$total)-min(dat.temp$total))/7, label="time period     r-squared     p-value"))
-  fig6b <- fig6b + geom_text(aes(x=2008, y=min(dat.temp$total)+(max(dat.temp$total)-min(dat.temp$total))/10, label=str_c("1985-2017          ", round(summary(lm.all)$r.squared,2),  "          ", round(coefficients(summary(lm.all))[2,4], 3))))
-  
-  fig6b <- fig6b + theme_classic()
-  fig6b <- fig6b + theme(panel.spacing = unit(0.25, "in"))
-  fig6b <- fig6b + theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
-  fig6b <- fig6b + theme(axis.title.y = element_text(margin = margin(r=1, unit="line")))
-  fig6b <- fig6b + theme(strip.background = element_rect(fill=NULL, linetype = "blank"))
-  fig6b <- fig6b + theme(text = element_text(size=16))
-  fig6b
-  
-  ##save the plot
-  #assign(str_c("fig6.", as.character(region.temp)), fig6) ##save plot for that region ##this approach doesn't work because the variables (eg lm1) get updated so the plot call with plot the most recent one, not the variable that existed when it was saved
-  png(filename = str_c("fig6.",region.temp, ".cutoff.png"), units="in", width=6*1.5, height=4*1.5,  res=200);print(fig6); dev.off()
-  
-  png(filename = str_c("fig6.",region.temp, ".ln.png"), units="in", width=6*1.5, height=4*1.5,  res=200);print(fig6a); dev.off()
-  
-  png(filename = str_c("fig6.",region.temp, ".png"), units="in", width=6*1.5, height=4*1.5,  res=200);print(fig6b); dev.off()
-  
-  out.temp<-c(as.character(region.temp), "1985-2017", round(coefficients(lm.all)[2],2), round(coefficients(summary(lm.all))[2,2], 3), round(coefficients(summary(lm.all))[2,4], 3), round(exp(coefficients(lm.all)[2])*100-100,2))
-  out.temp1<-c(as.character(region.temp), str_c("1985-", cutoff.temp), round(coefficients(lm1)[2],2), round(coefficients(summary(lm1))[2,2], 3), round(coefficients(summary(lm1))[2,4], 3), round(exp(coefficients(lm1)[2])*100-100,2))
-  ##percent annual increase is exp(slope)
-  out.temp2<-c(as.character(region.temp), str_c(cutoff.temp, "-2017"), round(coefficients(lm2)[2],2), round(coefficients(summary(lm2))[2,2], 3), round(coefficients(summary(lm2))[2,4], 3), round(exp(coefficients(lm2)[2])*100-100,2))
-  
-  if (region.temp %in% c("Bridges", "South Farallon Islands")) {
-    out<-rbind(out, out.temp1, out.temp2)
-  } else {
-    out<-rbind(out, out.temp)
-  }
-}
-
-#out<-data.frame(out); colnames(out)<-c("Region", "start", "end", "slope", "se", "lower95CI", "upper95CI", "pvalue", "percent.annual.increase", "percent.upper95CI", "percent.lower95CI")
-
-slope.table<-data.frame(out); colnames(slope.table)<-c("Region", "Time period", "slope", "se", "pvalue", "percent.annual.increase")
+#source("DCCO_lm_analysis_07Mar2018.R")
 
 ##this section goes through:
 ##1) fit a basic model
@@ -944,172 +779,4 @@ type.fun<-function(x) {coefficients(type.model)[2]*x+ coefficients(type.model)[1
 
 (200-type.fun(200))/(200+type.fun(200))*100
 
-##GAMM (poptrend)
-##poptrend
-library(poptrend)
-
-
-## Fit a smooth trend with fixed site effects, random time effects,
-## and automatic selection of degrees of freedom
-
-regions<-unique(counts$Region)
-
-j<-2
-trFit <- ptrend(Count ~ trend(Year, tempRE = TRUE, type = "smooth") 
-                + s(Colony, bs="re") ##site as a random effect
-                + s(day)
-                #+ s(bridge.dist)
-                #+ Region
-                + Survey.type
-                , family = quasipoisson, data = subset(counts, Region==regions[j] & Year >1990)) ##subset by region
-#, family = quasipoisson, data = counts) ##all regions
-
-## Check the model fit
-checkFit(trFit)
-## Plot the trend
-plot(trFit, ciBase=mean, main=regions[j])
-#summary(trFit)
-## Check the estimated percent change from year 8 to 25
-change(trFit, 2002, 2017)
-
-##plot predicted pop change for each region
-par(mfrow = c(3,2), bty="L", mar=c(4,4,4,2))
-counts.temp<-subset(counts, Region!="")
-
-trend.estimates<-dim(0)
-regional.models<-list()
-for (j in 1:length(unique(counts.temp$Region))) {
-  reg.temp<-unique(counts.temp$Region)[order(unique(counts.temp$Region))][j]
-  data.temp<-subset(counts.temp, Region==reg.temp)
-  
-  if (reg.temp=="Bridges") { ##if the region is bridges, don't include day. else include day as a fixed effect
-    trFit <- ptrend(Count ~ trend(Year, tempRE = TRUE, type = "smooth") + s(Colony, bs="re"), family = quasipoisson, data = data.temp) ##site as a random effect
-  }
-  if (reg.temp == "South Farallon Islands") {
-    trFit <- ptrend(Count ~ trend(Year, tempRE = TRUE, type = "smooth") + Survey.type, family = quasipoisson, data = data.temp) ##no site effect
-  }
-  if (reg.temp != "Bridges" & reg.temp != "South Farallon Islands") {
-    trFit <- ptrend(Count ~ trend(Year, tempRE = TRUE, type = "smooth") + s(Colony, bs="re") + s(day), family = quasipoisson, data = data.temp) ##site as a random effect
-  }
-  
-  plot(trFit, main=reg.temp, ylab="Trend in nest counts", ciBase=mean, plotGrid = F)#; mtext(text = str_c( round(change(trFit, 2006, 2016)$percentChange[1],1),"% change from 2006-2016"), side = 3)
-  
-  #trend.estimates.temp<-cbind(region = rep(reg.temp, nrow(summary(trFit)$estimates)), summary(trFit)$estimates)
-  #trend.estimates.temp<-trend.estimates.temp %>% mutate(Perc_Chg = (trend-lag(trend))/lag(trend))
-  #trend.estimates<-rbind(trend.estimates, trend.estimates.temp)
-  
-  ##new version of trend estimates for every year in region
-  years.temp<-min(data.temp$Year):max(data.temp$Year)
-  for (i in 2:length(years.temp)) {
-    year.temp<-years.temp[i]
-    change.temp<-change(trFit, year.temp-1, year.temp)
-    trend.estimates.temp<-data.frame(Region=reg.temp, Year=year.temp, Perc_Chg=round(change.temp$percentChange,2), CI_lower=round(change.temp$CI[[1]],2), CI_upper=round(change.temp$CI[[2]],2))
-    trend.estimates<-rbind(trend.estimates, trend.estimates.temp)
-  }
-  
-  
-  regional.models[[j]]<-trFit
-  names(regional.models)[[j]]<-as.character(reg.temp)
-  
-}
-par(mfrow=c(1,1))
-
-#trend.estimates.spread<-subset(trend.estimates, select=c(region, Year, Perc_Chg)) %>% spread(key = region, value = Perc_Chg)
-
-##model for north bay without effect of day
-trFit.northbay.noday <- ptrend(Count ~ trend(Year, tempRE = TRUE, type = "smooth") + s(Colony, bs="re"), family = quasipoisson, data = subset(counts, Region=="North Bay")) ##site as a random effect
-
-##model growth at non-bridges
-##based on data by sites
-nonbridge.temp<-subset(counts, Region!="Bridge")
-#nonbridge.temp<-counts
-trFit.nonbridge <- ptrend(Count ~ trend(Year, tempRE = TRUE, type = "smooth") + s(Colony, bs="re") + s(day), family = quasipoisson, data = nonbridge.temp)##site as a random effect
-
-#trFit <- ptrend(Count ~ trend(Year, tempRE = TRUE, type = "smooth") + Colony, family = quasipoisson, data = nonbridge.temp)##site as a fixed effect
-
-plot(trFit.nonbridge, main="All sites except bridges", ciBase=mean)#; mtext(text = str_c( round(change(trFit, 2006, 2016)$percentChange[1],1),"% change from 2006-2016"), side = 3)
-
-##model growth at all regions together
-trFit.all<-ptrend(Count ~ trend(Year, tempRE = TRUE, type = "smooth") + s(Colony, bs="re") + s(day), family = quasipoisson, data = counts)##site as a random effect
-plot(trFit.all, main="All sites except bridges", ciBase=mean)
-checkFit(trFit.all)
-
-##compare model fits
-trFit.all2<-ptrend(Count ~ trend(Year, tempRE = TRUE, type = "smooth") + s(Colony, bs="re"), family = quasipoisson, data = counts)
-
-##based on data by regions (Phil's data)
-#nonbridge.temp<-subset(data, Region!="" & Region!="Bridges") ##phil's data subset
-#nonbridge.temp<-subset(data, Region!="" ) ##phil's data subset
-#trFit <- ptrend(Count ~ trend(Year, tempRE = TRUE, type = "smooth") + Region, data = nonbridge.temp)##site as a fixed effect
-#plot(trFit, main="All sites except bridges (regional data)"); mtext(text = str_c( round(change(trFit, 2006, 2016)$percentChange[1],1),"% change from 2006-2016"), side = 3)
-
-##based on regional data, but processed after having site counts
-#nonbridge.temp<-subset(regional.counts, Region!="" & Region!="Bridges") ##site data processed
-#trFit <- ptrend(total ~ trend(Year, tempRE = TRUE, type = "smooth") + Region, data = nonbridge.temp)##site as a fixed effect
-#plot(trFit, main="All sites except bridges (regional data)"); mtext(text = str_c( round(change(trFit, 2006, 2016)$percentChange[1],1),"% change from 2006-2016"), side = 3)
-
-##compare phil's processed data to site counts
-#sub.temp<-subset(data, Region=="North Bay")
-#all.temp<-subset(regional.counts, Region=="North Bay")
-
-#plot(x = sub.temp$Year, y = sub.temp$Count) ##phil's totals in black
-#points(x = all.temp$Year, y = all.temp$total, col="red") ##site totals in red
-
-##generic count query
-unique(subset(counts, Region=="Bridges", select = c(Colony, Year, Count)))
-
-##explore north bay data
-##sum of raw counts in x region
-fig.test<-ggplot(data = subset(regional.counts, Region =="South Bay"), aes(x=Year, y=total)) + geom_point() +geom_smooth(method="lm")
-fig.test <- fig.test + geom_text(aes(label=n.sites), nudge_x = 0.5)
-fig.test
-
-##model fit, taking site into account as random effect
-regions<-unique(counts$Region)
-j<-2
-trFit <- ptrend(Count ~ trend(Year, tempRE = TRUE, type = "smooth") + s(Colony, bs="re"), family = quasipoisson, data = subset(counts, Region==regions[j])) ##site as a random effect
-plot(trFit, ciBase=mean, main=regions[j])
-
-##trends in individual sites within north bay region
-fig1n<-ggplot(data = subset(counts, Region=="North Bay"), aes(x = Year, y=Count, color=Colony)) + geom_point()
-fig1n <- fig1n + geom_smooth(method="lm", se = F, aes(linetype = Region))
-fig1n <- fig1n + ylab("Number of DCCO nests")
-#fig1n <- fig1n + scale_y_continuous(limits=c(0,50))
-fig1n
-
-##make fake data with extra 0's to see effect on north bay model
-nb.test<-subset(counts, Region=="North Bay")
-##for each site
-##find earliest date
-##if it is before 1990, then add 0s from 1990 to first date
-
-out<-nb.test
-nb.sites<-unique(nb.test$Colony)
-for (j in 1:length(nb.sites)) {
-  site.temp<-nb.sites[j]
-  data.temp<-subset(nb.test, Colony==site.temp)
-  early.dat<-min(data.temp$Year)
-  if (early.dat>1990) {
-    anchor.temp<-data.frame(Colony=site.temp, Year=1990, Count=0, Survey.Date=NA, Organization=NA, Survey.type=NA, lat=data.temp$lat[1], long=data.temp$long[1], Region="North Bay", Count.type=NA, Exclude.comments=NA, Comments=NA, Incomplete.year=NA, day=NA, time.period="pre", bridge.dist=data.temp$bridge.dist[1])
-    out<-rbind(out, anchor.temp)
-  }
-}
-
-trFit <- ptrend(Count ~ trend(Year, tempRE = TRUE, type = "smooth") + s(Colony, bs="re"), family = quasipoisson, data = out) ##site as a random effect
-plot(trFit, ciBase=mean)
-
-##BUFFER FROM BRIDGE
-##close versus far sites
-cut.off<-0.4
-par(mfrow=c(2,1))
-trFit <- ptrend(Count ~ trend(Year, tempRE = TRUE, type = "smooth") + s(Colony, bs="re") + s(day), family = quasipoisson, data = subset(counts, Region!="Bridges" & bridge.dist<cut.off)) ##site as a random effect
-plot(trFit, ciBase=mean, main=str_c("Closer than ", cut.off, " dd to bridges"))
-
-trFit <- ptrend(Count ~ trend(Year, tempRE = TRUE, type = "smooth") + s(Colony, bs="re") + s(day), family = quasipoisson, data = subset(counts, Region!="Bridges" & bridge.dist>=cut.off)) ##site as a random effect
-plot(trFit, ciBase=mean, main=str_c("Farther than ", cut.off, " dd to bridges"))
-par(mfrow=c(1,1))
-
-##full model will effect of bridge dist
-trFit <- ptrend(Count ~ trend(Year, tempRE = TRUE, type = "smooth") + s(Colony, bs="re") + s(bridge.dist), family = quasipoisson, data = subset(counts, Region!="Bridges" & Year >2002)) ##site as a random effect
-plot(trFit, ciBase=mean)
-checkFit(trFit)
+#source("DCCO_poptrend_code_07Mar2018.R")
