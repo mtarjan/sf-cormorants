@@ -282,7 +282,7 @@ colnames(phil.data)<-c("Region", "Year", "total")
 #data$Year<-as.numeric(str_sub(data$Year, 2, 5)) ##format year (remove space)
 #data<-subset(data, subset = Count!='NA')
 
-fig3d <- ggplot(data = subset(phil.data, subset = Region !="All Colonies"), aes(x = Year, y=total))
+fig3d <- ggplot(data = subset(phil.data, subset = Region !="NonBridge"), aes(x = Year, y=total))
 fig3d <- fig3d + geom_point(size=2)
 fig3d <- fig3d + geom_smooth(method = "loess")
 fig3d <- fig3d + facet_wrap(~Region, strip.position="top", scales="free_y", ncol = 2) ##split up sites with facets; choose this option or the one below
@@ -592,7 +592,7 @@ M11<-gam(Count ~ s(Year, by=Colony) + s(day) + Survey.type,
 ##look for lowest AIC
 
 ##quasi models to deal with overdispersion
-#M9q<-gam(Count ~ s(Year, by=Colony) + day + Survey.type,
+#M9q<-gam(Count ~ s(Year, by=Colony) + s(day) + Survey.type,
 #         data = counts,
 #         family = quasipoisson)
 
@@ -708,10 +708,11 @@ out<-dim(0)
 for (j in 1:nrow(counts.m8)){
   colony.temp<-counts.m8$Colony[j]
   region.temp<-counts.m8$Region[j]
-  colony.mean<-mean(subset(counts.m8, Colony==colony.temp)$Count, na.rm=T)
-  region.mean<-subset(counts.m8, Region==region.temp) %>% group_by(Colony) %>% summarise(col.mean = mean(Count, na.rm=T)) %>% data.frame() %>% summarise(region.mean=mean(col.mean)) %>% as.numeric()
-  region.n<-length(unique(subset(counts.m8, Region==region.temp)$Colony))
-  size.weight<-colony.mean/region.mean/region.n
+  colony.mean<-mean(subset(counts.m8, Colony==colony.temp)$Count, na.rm=T) ##mean colony size across years
+  col.mean.sum<-subset(counts.m8, Region==region.temp) %>% group_by(Colony) %>% summarise(col.mean = mean(Count, na.rm=T)) %>% data.frame() %>% summarise(col.mean.sum=sum(col.mean)) %>% as.numeric() ##sum of mean colony sizes
+  #region.n<-length(unique(subset(counts.m8, Region==region.temp)$Colony)) ##number of colonies in region
+  size.weight<-colony.mean/col.mean.sum ##colony size/sum of all colony sizes
+  
   #regional.counts.temp<-subset(counts.m8, Region==region.temp) %>% group_by(Region, Year) %>% summarise(total=sum(Count, na.rm=T)) %>% data.frame
   #regional.mean<-mean(regional.counts.temp$total, na.rm=T)
   
@@ -719,7 +720,8 @@ for (j in 1:nrow(counts.m8)){
   ##error at that colony in year x divided by sum of regional error in year x
   year.temp<-counts.m8$Year[j]
   error.year<-subset(counts.m8, Year==year.temp & Region==region.temp) %>% summarise(error.year=sum(pred.se)) %>% as.numeric()
-  error.weight<-1-counts.m8$pred.se[j]/error.year
+  n.temp<-length(unique(subset(counts.m8, Region==region.temp & Year==year.temp)$Colony))
+  error.weight<-(1-counts.m8$pred.se[j]/error.year)/(n.temp-1)
   
   if (length(unique(subset(counts.m8, Region==region.temp)$Colony))==1) {error.weight<-1} ##if there is only one colony in the region, then the error weight is 1
   
@@ -729,7 +731,7 @@ counts.m8$weight<-out[,1] ##mean colony size as a fraction of mean regional size
 counts.m8$error.weight<-out[,2]
 
 ##check that weights within each year sum to 1
-counts.m8 %>% group_by(Year, Region) %>% summarize(weights=sum(weight))
+counts.m8 %>% group_by(Year, Region) %>% summarize(weights=sum(error.weight))
 
 ##divide the weight by the standard error (less weight given to estimates with more se)
 #counts.m8$weight2<-ifelse(counts.m8$pred.se==0, counts.m8$weight, counts.m8$weight/counts.m8$pred.se)
@@ -773,8 +775,14 @@ edf.sum<-edf.df %>% group_by(Colony) %>% summarise(edf.sum=sum(edf)) %>% data.fr
 
 counts.m8<-dplyr::left_join(counts.m8, y=edf.sum, by = c("Colony","Colony"))
 counts.m8$pred.sd<-counts.m8$pred.se*sqrt(counts.m8$edf.sum+1)
+rep<-10000
+pred.rep<-apply(X = subset(counts.m8, select=c(pred, pred.se)), MARGIN = 1, FUN = function(x,y,z,n) rnorm(n = n, mean=x[y], sd=x[z]), n = rep, y=1, z=2) %>% data.frame() %>% t() ##alter this to change assumption about error around model predicted estimates
 
-pred.rep<-apply(X = subset(counts.m8, select=c(pred, pred.sd)), MARGIN = 1, FUN = rnorm, n = 10000) %>% data.frame() %>% t()
+##visualize replicate distributions
+#boxplot(pred.rep[1,]); mean(pred.rep[1,]); counts.m8$pred[1]
+#boxplot(rnorm(mean=counts.m8$pred[1], sd=counts.m8$pred.sd[1], n=100))
+
+
 regional.pred.rep<-regional.pred
 for (j in 1:ncol(pred.rep)) {
   counts.temp<-counts.m8
@@ -786,9 +794,13 @@ for (j in 1:ncol(pred.rep)) {
 ##get mean regional prediction and CI
 r.pred.mean<-subset(regional.pred.rep, select=str_detect(names(regional.pred.rep), pattern="r.pred.rep")) %>% apply(MARGIN = 1, FUN = mean) %>% as.numeric() ##take only replicates
 r.pred.sd<-subset(regional.pred.rep, select=str_detect(names(regional.pred.rep), pattern="r.pred.rep")) %>% apply(MARGIN = 1, FUN = sd) %>% as.numeric()
+r.pred.lower<-r.pred.mean - 1.96*r.pred.sd/sqrt(rep)
+r.pred.upper<-r.pred.mean - 1.96*r.pred.sd/sqrt(rep)
 
 regional.pred$r.pred.mean<-r.pred.mean
 regional.pred$r.pred.sd<-r.pred.sd
+regional.pred$r.ci.lower<-r.pred.lower
+regional.pred$r.ci.upper<-r.pred.upper
 
 ##replace missing years of counts with NA
 for (j in 1:nrow(regional.pred)) {
@@ -832,17 +844,19 @@ for (j in 1:length(unique(regional.pred$Region))) {
   png(filename = str_c("fig.",region.temp, ".gam.colonies.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
   
   ##plot trends by region
-  data.plot.region<-subset(regional.pred, Region==region.temp & Year >= min(data.plot$Year) & Year <= max(data.plot$Year))
+  data.plot.region<-subset(regional.pred, Region==region.temp & Year >= min(data.plot$Year)+3 & Year <= max(data.plot$Year))
   range<-c(min(data.plot.region$total, na.rm=T), max(data.plot.region$total, na.rm=T))
   #range.pred<-round(c(min(data.plot.region$pred.regional, na.rm=T), max(data.plot.region$pred.regional, na.rm=T)),0)
-  range.pred<-round(c(min(data.plot.region$r.pred.mean-data.plot.region$r.pred.sd, na.rm=T), max(data.plot.region$r.pred.mean+data.plot.region$r.pred.sd, na.rm=T)),0) ##switch to mean from replicated
+  range.pred<-round(c(min(data.plot.region$r.pred.mean-data.plot.region$r.pred.sd, na.rm=T), max(data.plot.region$r.pred.mean+data.plot.region$r.pred.sd, na.rm=T)),1) ##switch to mean from replicated
   
   fig <- ggplot(data = data.plot.region, aes(x=Year))
   #fig <- fig + geom_point(aes(y=total))
   #fig <- fig + geom_path(aes(y=normalize(pred.regional, range=range, method="range")))
+  fig <- fig + geom_path(aes(y=pred.regional), color="red", size=2)
   fig <- fig + geom_path(aes(y=r.pred.mean))
   fig <- fig + geom_path(aes(y=r.pred.mean+r.pred.sd), lty="dashed")
   fig <- fig + geom_path(aes(y=r.pred.mean-r.pred.sd), lty="dashed")
+  #fig <- fig + geom_path(aes(y=r.ci.upper), lty="dashed") + geom_path(aes(y=r.ci.lower), lty="dashed")
   fig <- fig + ylab("Regional trend")
   fig <- fig + geom_point(aes(y=normalize(x = total, range=range.pred, method="range")))
   fig <- fig + scale_y_continuous(breaks=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), sec.axis = sec_axis(~ ., name = "Total regional count", breaks = seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels = round(seq(range[1], range[2], (range[2]-range[1])/10), 0)))
