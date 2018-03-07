@@ -810,19 +810,31 @@ for (j in 1:nrow(regional.pred)) {
   }
 }
 
+min.year<-c(1994, 1999, 2001, 1994, 1985) ##earliest year with sufficient data to look at trend. ordered same as colonies
 ##plot trends for each colony
 for (j in 1:length(unique(regional.pred$Region))) {
   region.temp<-unique(regional.pred$Region)[j]
   
   ##plot trends by colony
   data.plot<-subset(counts.m8.sub, Region==region.temp)
+  
+  range<-c(min(data.plot$Count, na.rm=T), max(data.plot$Count, na.rm=T))
+  range.pred<-round(c(min(data.plot$pred-data.plot$pred.se, na.rm=T), max(data.plot$pred+data.plot$pred.se, na.rm=T)),1) 
+  
   fig <- ggplot(data = data.plot, aes(x=Year))
   fig <- fig + geom_point(aes(y=Count, color=Survey.type.y))
   fig <- fig + geom_path(aes(y=pred.norm))
+  
+  #fig <- fig + geom_path(aes(y=pred))
+  #fig <- fig + geom_path(aes(y=pred+pred.se), lty="dashed") + geom_path(aes(y=pred-pred.se), lty="dashed")
+  
+  #fig <- fig + geom_point(aes(y=normalize(Count, range=range.pred, method="range"), color=Survey.type.y))
+    
   fig <- fig + scale_colour_discrete(name="Survey type")
   fig <- fig + ggtitle(region.temp)
   fig <- fig + facet_wrap(~Colony, scales = "free_y")
   fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 2), labels=seq(1985, 2017, 2)) + theme(axis.text.x = element_text(angle = 45, hjust=1))
+  #fig <- fig + scale_y_continuous(breaks=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), name="Trend", sec.axis = sec_axis(~ ., name = "Count", breaks = seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels = round(seq(range[1], range[2], (range[2]-range[1])/10), 0)))
   fig
   
   if (length(unique(data.plot$Colony))==2) {
@@ -844,7 +856,7 @@ for (j in 1:length(unique(regional.pred$Region))) {
   png(filename = str_c("fig.",region.temp, ".gam.colonies.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
   
   ##plot trends by region
-  data.plot.region<-subset(regional.pred, Region==region.temp & Year >= min(data.plot$Year)+3 & Year <= max(data.plot$Year))
+  data.plot.region<-subset(regional.pred, Region==region.temp & Year >= min.year[j] & Year <= max(data.plot$Year))
   range<-c(min(data.plot.region$total, na.rm=T), max(data.plot.region$total, na.rm=T))
   #range.pred<-round(c(min(data.plot.region$pred.regional, na.rm=T), max(data.plot.region$pred.regional, na.rm=T)),0)
   range.pred<-round(c(min(data.plot.region$r.pred.mean-data.plot.region$r.pred.sd, na.rm=T), max(data.plot.region$r.pred.mean+data.plot.region$r.pred.sd, na.rm=T)),1) ##switch to mean from replicated
@@ -852,7 +864,7 @@ for (j in 1:length(unique(regional.pred$Region))) {
   fig <- ggplot(data = data.plot.region, aes(x=Year))
   #fig <- fig + geom_point(aes(y=total))
   #fig <- fig + geom_path(aes(y=normalize(pred.regional, range=range, method="range")))
-  fig <- fig + geom_path(aes(y=pred.regional), color="red", size=2)
+  #fig <- fig + geom_path(aes(y=pred.regional), color="red", size=2)
   fig <- fig + geom_path(aes(y=r.pred.mean))
   fig <- fig + geom_path(aes(y=r.pred.mean+r.pred.sd), lty="dashed")
   fig <- fig + geom_path(aes(y=r.pred.mean-r.pred.sd), lty="dashed")

@@ -22,7 +22,7 @@ table.num<-0
 
 
 # Background
-This manuscript describes options for analyzing trends in DCCO populations in the San Francisco Bay Area from 1985--2017.
+This manuscript describes trends in DCCO populations in the San Francisco Bay Area from 1985--2017.
 
 #Methods
 ##General Additive Mixed Models (GAMMs)
