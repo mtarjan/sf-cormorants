@@ -26,17 +26,23 @@ This manuscript describes trends in DCCO populations in the San Francisco Bay Ar
 
 #Methods
 ##General Additive Mixed Models (GAMMs)
-Count data are frequently used to estimate population trends, but are subject to biases in data collection. Notably, raw counts are strongly affected by survey effort and survey dates and long-term trends can be biased by short-term annual shifts due to environmental variation. Our raw counts are likey subject to these effects. The North Bay and South Bay regions contain multiple (12+) DCCO nesting colonies, but not all sites were visited in each year. Site occupation also depends on day of the season. Birds arrive to breed in April, peak breeding occurs in June, and they depart in August. Nest counts increase and then decrease as the season progresses, so day of the season is an important covariate when inferring colony size. Other potential covariates are survey type (aerial, boat, or ground) and the observing organization. To account for potential biases, we included notable covariates in our estimates of regional trends. Long-term population dynamics are frequently non-linear, so we used an approach that would allow for nonlinear trends.
+Count data are frequently used to estimate population trends, but are subject to biases in data collection. Notably, raw counts are strongly affected by survey effort and survey dates. Our raw counts are likey subject to these effects. The North Bay and South Bay regions contain multiple (12+) DCCO nesting colonies, but not all sites were visited in each year. Site occupation also depends on day of the season. Birds arrive to breed in April, peak breeding occurs in June, and they depart in August. Nest counts increase and then decrease as the season progresses, so day of the season is an important covariate when inferring colony size. Other potential covariates are survey type (aerial, boat, or ground). To account for potential biases, we tested competing models that included measured covariates in our estimates of regional trends. Long-term population dynamics are frequently non-linear, so we used an approach that would allow for nonlinear trends.
 
-General additive mixed models are superior to using exponential and logistic growth equations because it is possible to include an interaction term between colony and year, which allows each colony to growth nonlinearly over time. Estimating the regional counts by summing colony counts and weighting those counts by estimated error corrects for years when certain colonies were not visited. This method also allows for additive terms to inform colony size, so I was able to test the effect of count date and survey type on colony counts.
+General additive mixed models allow each colony to growth nonlinearly over time by including an interaction term between colony and year. Estimating the regional counts by summing colony counts and weighting those counts by estimated error corrects for years when certain colonies were not visited. This method also allows for additive terms to inform colony size, so I was able to test the effect of count date and survey type on colony counts.
 
-Methods follow those of Shadish et al. 2014. GAMMs were devoped using the gam function in R. The model took the following form:
+Methods follow those of Shadish et al. 2014. GAMMs were devoped using the gam function in R. I considered the following models:
 
-count ~ s(year*colony) + s(day) + survey type
+Model 0) count ~ s(year * colony)
+
+Model 1) count ~ s(year * colony) + s(day)
+
+Model 2) count ~ s(year * colony) + survey type
+
+Model 3) count ~ s(year * colony) + s(day) + survey type
 
 where the s() function allows the estimate to vary nonlinearly, and the year*colony interaction allows that colony trend to change nonlinearly across years.
 
-I calcuated each regional estimate (mean and standard deviation) by simulating a distribution of regional estimates across a range of colony estimates. I randomly selected 10,000 replicate estimates for each colony*year parameter from a normal distribution of estimates, where the mean was equal to the mean reported by the model and the standard deviation (sd) was equal to the standard error (se) reported by the model multiplied by the square root of the estimated degrees of freedom (edf) plus one, such that:
+I calcuated each annual regional trend estimate (mean and standard deviation) by simulating a distribution of regional estimates across a range of colony trend estimates. I randomly selected 10,000 replicate estimates for each colony*year parameter from a normal distribution of estimates, where the mean was equal to the mean reported by the model and the standard deviation (sd) was equal to the standard error (se) reported by the model multiplied by the square root of the estimated degrees of freedom (edf) plus one, such that:
 
 sd = se * sqrt(edf+1)
 
@@ -44,8 +50,14 @@ I then calculated the annual regional trend estimate for each of these replicate
 
 The regional estimate for each year is thus represented by the mean and standard deviation of these 10,000 replicate regional estimates, and encompasses the error in each of the colony trend estimates.
 
-##Results
-The GAMM had an adjusted r-squared of `r round(summary(model.plot)$r.sq,2)` and the deviance explained was `r round(summary(model.plot)$dev.expl*100,0)`%. The parameter estimates for Aerial surveys differ significantly from Boat/Ground, Boat, and Ground surveys (p<0.0001). Survey date showed a non-linear trend, where surveys early in the season resulted in lower trend estimates. 
+#Results
+##Model selection
+The full model (count as a function of year, colony, day, and survey type) had the lowest AIC score of the four models tested, so we selected the full model to estimate regional trends. The full GAMM had an adjusted r-squared of `r round(summary(model.plot)$r.sq,2)` and the deviance explained was `r round(summary(model.plot)$dev.expl*100,0)`%. 
+
+##Effects of covariates
+The parameter estimates for Aerial surveys differ significantly from Boat/Ground, Boat, and Ground surveys (p<0.0001). Survey date showed a non-linear trend, where surveys early in the season resulted in lower trend estimates.
+
+##Regional trends
 
 #Works Cited
 Gotelli, N. J. 2008. A Primer of Ecology, 4th edition. Sinauer Associates, Inc. Sunderland, MA. 290 pp.
@@ -65,6 +77,14 @@ Table `r table.num`. Site descriptions, including region, coordinates, and numbe
 knitr::kable(ms.table1)
 ```
 
+
+```{r, echo=FALSE}
+table.num<-table.num+1
+```
+Table `r table.num`. Model fit and deviance explained for the four GAMMs tested.
+```{r, echo=FALSE}
+knitr::kable(model.fit)
+```
 
 #Figures
 ```{r, echo=FALSE}

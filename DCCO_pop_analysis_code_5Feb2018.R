@@ -368,17 +368,17 @@ fig3d
 library(mgcv)
 library(lattice) ##for plotting
 
-#M0<-gam(Count ~ Year + Colony,
-#        data = counts,
-#        family = poisson)
+M0<-gam(Count ~ s(Year, by=Colony) + Colony,
+        data = counts,
+        family = poisson)
 
-#M1<-gam(Count ~ s(Year) + Colony,
-#        data = counts,
-#        family = poisson)
+M1<-gam(Count ~ s(Year, by=Colony) + Colony + s(day),
+        data = counts,
+        family = poisson)
 
-#M2<-gam(Count ~ s(Year) + Colony + day,
-#        data = counts,
-#        family = poisson)
+M2<-gam(Count ~ s(Year, by=Colony) + Colony + Survey.type,
+        data = counts,
+        family = poisson)
 
 #M3<-gam(Count ~ s(Year) + Colony + Survey.type,
 #        data = counts,
@@ -417,13 +417,14 @@ library(lattice) ##for plotting
 #        data = counts,
 #        family = poisson)
 
-M11<-gam(Count ~ s(Year, by=Colony) + s(day) + Survey.type,
+M3<-gam(Count ~ s(Year, by=Colony) + Colony + s(day) + Survey.type,
         data = counts,
         family = poisson)
 
+
 #aic.results<-AIC(M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12)
 #round(aic.results, 0)
-#AIC(M0, M1, M2, M3, M4, M5, M6, M7, M9)
+AIC(M0, M1, M2, M3)
 ##look for lowest AIC
 
 ##quasi models to deal with overdispersion
@@ -431,8 +432,15 @@ M11<-gam(Count ~ s(Year, by=Colony) + s(day) + Survey.type,
 #         data = counts,
 #         family = quasipoisson)
 
+##TABLE TO COMPARE MODEL FIT
+model.fit<-round(AIC(M0, M1, M2, M3),0)
+model.fit$Model<-c(M0$formula, M1$formula, M2$formula, M3$formula)
+model.fit$r.squared<-round(c(summary(M0)$r.sq, summary(M1)$r.sq, summary(M2)$r.sq, summary(M3)$r.sq),3)
+model.fit$deviance.explained<-round(c(summary(M0)$dev.expl, summary(M1)$dev.expl, summary(M2)$dev.expl, summary(M3)$dev.expl),3)
+model.fit<-subset(model.fit, select=c(Model, df, AIC, r.squared, deviance.explained))
+
 ##SELECT MODEL TO PLOT
-model.plot<-M11
+model.plot<-M3
 
 ##plot model M8
 #P8<-predict(M8, se.fit = T)
@@ -603,7 +611,7 @@ regional.pred<-counts.m8 %>% group_by(Year, Region) %>% summarise(total=sum(Coun
 ##assume predictions come from a normal distribution with se==pred.se
 ##assume sd = se * sqrt(df+1)
 ##add df to counts.m8
-edf.colony<-subset(M11$edf, str_detect(names(M11$edf), pattern="Colony"))
+edf.colony<-subset(model.plot$edf, str_detect(names(model.plot$edf), pattern="Colony"))
 names(edf.colony)<-str_sub(names(edf.colony), 15, -3)
 edf.df<-data.frame(Colony=names(edf.colony), edf=edf.colony)
 edf.sum<-edf.df %>% group_by(Colony) %>% summarise(edf.sum=sum(edf)) %>% data.frame()
@@ -645,7 +653,10 @@ for (j in 1:nrow(regional.pred)) {
   }
 }
 
-min.year<-c(1994, 1999, 2001, 1994, 1985) ##earliest year with sufficient data to look at trend. ordered same as colonies
+#min.year<-rep(1985, 5)
+min.year<-subset(regional.counts, is.na(total)==F) %>% group_by(Region) %>% summarize(min.year=min(Year)) %>% data.frame()
+min.year<-min.year$min.year
+#min.year<-c(1994, 1999, 2001, 2000, 1985) ##earliest year with sufficient data to look at trend. ordered same as colonies
 ##plot trends for each colony
 for (j in 1:length(unique(regional.pred$Region))) {
   region.temp<-unique(regional.pred$Region)[j]
@@ -668,7 +679,7 @@ for (j in 1:length(unique(regional.pred$Region))) {
   fig <- fig + scale_colour_discrete(name="Survey type")
   fig <- fig + ggtitle(region.temp)
   fig <- fig + facet_wrap(~Colony, scales = "free_y")
-  fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 2), labels=seq(1985, 2017, 2)) + theme(axis.text.x = element_text(angle = 45, hjust=1))
+  fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 3), labels=seq(1985, 2017, 3)) + theme(axis.text.x = element_text(angle = 45, hjust=1))
   #fig <- fig + scale_y_continuous(breaks=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), name="Trend", sec.axis = sec_axis(~ ., name = "Count", breaks = seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels = round(seq(range[1], range[2], (range[2]-range[1])/10), 0)))
   fig
   
@@ -685,7 +696,7 @@ for (j in 1:length(unique(regional.pred$Region))) {
   fig <- fig + ylab("Trend")
   fig <- fig + ggtitle(region.temp)
   fig <- fig + facet_wrap(~Colony, scales = "free_y")
-  fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 2), labels=seq(1985, 2017, 2)) + theme(axis.text.x = element_text(angle = 45, hjust=1))
+  fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 3), labels=seq(1985, 2017, 3)) + theme(axis.text.x = element_text(angle = 45, hjust=1))
   fig
   
   png(filename = str_c("fig.",region.temp, ".gam.colonies.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
