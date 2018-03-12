@@ -62,7 +62,7 @@ The parameter estimates for Aerial surveys differ significantly from Boat/Ground
 Since 1992, DCCO colonies in the Bridges Region showed an overall increasing trend through 1999. Trend estimates remained high until a sharp decline, which began in 2003 and took off in 2004 until a regional low in 2010. The regional trend then increased until 2014 and fell again through 2017.
 
 ###North Bay
-The North Bay region DCCO populations show very significant variability in trend estimates across colonies, with some growing and some declining in the same years. This lead to large error estimates in the regional trend, and also highly variable mean regional trend estimates that fluctuated around the same value for the duration of the study in that region, from 1989 to 2017.
+The North Bay region DCCO populations show an increase in trend from 1989 until 2008, and then decrease until 2017. The North Bay region has more colonies than other regions considered and shows significant variability in trend estimates across colonies, with some growing and some declining in the same years. This led to large error estimates in the regional trend. The trend estimate is graphed with and without error to show the mean estimate and the large error on relevant scales.
 
 ###Outer Coast
 DCCO colonies of the Outer Coast region show an increasing trend from the first count in 1997 to 2006, at which point the trend plateaus with only a slight increase from 2008 to 2013.
@@ -120,10 +120,11 @@ Fig `r figure.num`. Colony counts (top), GAM colony trends with SE (middle), and
 ```{r, echo=FALSE}
 knitr::include_graphics(path="fig.North Bay.counts.colonies.png")
 knitr::include_graphics(path="fig.North Bay.gam.colonies.png")
+knitr::include_graphics(path="fig.North Bay.gam.NoError.png")
 knitr::include_graphics(path="fig.North Bay.gam.png")
 figure.num<-figure.num+1
 ```
-Fig `r figure.num`. Colony counts (top), GAM colony trends with SE (middle), and GAM regional trend with SD (bottom) for North Bay region. Note that the trend estimates are on a different scale from the counts, so the trend estimates cannot be used to visually estimate count predictions.
+Fig `r figure.num`. Colony counts (top), GAM colony trends with SE (middle), and GAM regional trend with (middle) and without SD (bottom) for North Bay region. Note that the trend estimates are on a different scale from the counts, so the trend estimates cannot be used to visually estimate count predictions.
 
 ######Page break
 ```{r, echo=FALSE}
@@ -151,6 +152,13 @@ knitr::include_graphics(path="fig.South Farallon Islands.gam.png")
 figure.num<-figure.num+1
 ```
 Fig `r figure.num`. Colony counts (top), GAM colony trends with SE (middle), and GAM regional trend with SD (bottom) for South Farallon Islands region. Note that the trend estimates are on a different scale from the counts, so the trend estimates cannot be used to visually estimate count predictions.
+
+######Page break
+```{r, echo=FALSE}
+knitr::include_graphics(path="fig.SF.trend.png")
+figure.num<-figure.num+1
+```
+Fig `r figure.num`. GAM trend for all SF Bay colonies. Note that the trend estimates are on a different scale from the counts, so the trend estimates cannot be used to visually estimate count predictions.
 
 ######Page break
 ```{r, echo=FALSE}

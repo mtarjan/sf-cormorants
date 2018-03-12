@@ -618,7 +618,7 @@ edf.sum<-edf.df %>% group_by(Colony) %>% summarise(edf.sum=sum(edf)) %>% data.fr
 counts.m8<-dplyr::left_join(counts.m8, y=edf.sum, by = c("Colony","Colony"))
 counts.m8$pred.sd<-counts.m8$pred.se*sqrt(counts.m8$edf.sum+1)
 rep<-10000
-pred.rep<-apply(X = subset(counts.m8, select=c(pred, pred.se)), MARGIN = 1, FUN = function(x,y,z,n) rnorm(n = n, mean=x[y], sd=x[z]), n = rep, y=1, z=2) %>% data.frame() %>% t() ##alter this to change assumption about error around model predicted estimates
+pred.rep<-apply(X = subset(counts.m8, select=c(pred, pred.sd)), MARGIN = 1, FUN = function(x,y,z,n) rnorm(n = n, mean=x[y], sd=x[z]), n = rep, y=1, z=2) %>% data.frame() %>% t() ##alter this to change assumption about error around model predicted estimates
 
 ##visualize replicate distributions
 #boxplot(pred.rep[1,]); mean(pred.rep[1,]); counts.m8$pred[1]
@@ -637,7 +637,7 @@ for (j in 1:ncol(pred.rep)) {
 r.pred.mean<-subset(regional.pred.rep, select=str_detect(names(regional.pred.rep), pattern="r.pred.rep")) %>% apply(MARGIN = 1, FUN = mean) %>% as.numeric() ##take only replicates
 r.pred.sd<-subset(regional.pred.rep, select=str_detect(names(regional.pred.rep), pattern="r.pred.rep")) %>% apply(MARGIN = 1, FUN = sd) %>% as.numeric()
 r.pred.lower<-r.pred.mean - 1.96*r.pred.sd/sqrt(rep)
-r.pred.upper<-r.pred.mean - 1.96*r.pred.sd/sqrt(rep)
+r.pred.upper<-r.pred.mean + 1.96*r.pred.sd/sqrt(rep)
 
 regional.pred$r.pred.mean<-r.pred.mean
 regional.pred$r.pred.sd<-r.pred.sd
@@ -709,7 +709,7 @@ for (j in 1:length(unique(regional.pred$Region))) {
   fig <- ggplot(data = data.plot.region, aes(x=Year))
   #fig <- fig + geom_point(aes(y=total))
   #fig <- fig + geom_path(aes(y=normalize(pred.regional, range=range, method="range")))
-  #fig <- fig + geom_path(aes(y=pred.regional), color="red", size=2)
+  #fig <- fig + geom_path(aes(y=normalize(pred.regional, range=range.pred, method="range")), color="blue")
   fig <- fig + geom_path(aes(y=r.pred.mean))
   fig <- fig + geom_path(aes(y=r.pred.mean+r.pred.sd), lty="dashed")
   fig <- fig + geom_path(aes(y=r.pred.mean-r.pred.sd), lty="dashed")
@@ -725,6 +725,20 @@ for (j in 1:length(unique(regional.pred$Region))) {
   fig
   
   png(filename = str_c("fig.",region.temp, ".gam.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
+  
+  if (region.temp=="North Bay") {
+    range.pred<-round(c(min(data.plot.region$pred.regional), max(data.plot.region$pred.regional)),1)
+    fig <- ggplot(data = data.plot.region, aes(x=Year))
+    fig <- fig + geom_path(aes(y=pred.regional))
+    fig <- fig + geom_point(aes(y=normalize(x = total, range=range.pred, method="range")))
+    fig <- fig + ylab("Regional trend")
+    fig <- fig + scale_y_continuous(breaks=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), sec.axis = sec_axis(~ ., name = "Total regional count", breaks = seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels = round(seq(range[1], range[2], (range[2]-range[1])/10), 0)))
+    fig <- fig + ggtitle(region.temp)
+    fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 2), labels=seq(1985, 2017, 2)) + theme(axis.text.x = element_text(angle = 45, hjust=1))
+    fig
+    
+    png(filename = str_c("fig.",region.temp, ".gam.NoError.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
+  }
 }
 
 ##PLOT EFFECTS OF COVARIATES
@@ -807,6 +821,9 @@ for (j in 1:nrow(counts.sf)) {
 counts.sf$weight<-out[,1] ##mean colony size as a fraction of mean regional size
 counts.sf$error.weight<-out[,2]
 
+##check that weights sum to one
+counts.sf %>% group_by(Year) %>% summarise(sum(error.weight))
+
 ###GET SF TREND
 sf.pred<-counts.sf %>% group_by(Year) %>% summarise(total=sum(Count, na.rm=T), pred.sf=sum(pred*weight*error.weight)) %>% data.frame()
 
@@ -819,21 +836,21 @@ edf.sum<-edf.df %>% group_by(Colony) %>% summarise(edf.sum=sum(edf)) %>% data.fr
 counts.sf<-dplyr::left_join(counts.sf, y=edf.sum, by = c("Colony","Colony"))
 counts.sf$pred.sd<-counts.sf$pred.se*sqrt(counts.sf$edf.sum+1)
 rep<-10000
-pred.rep<-apply(X = subset(counts.sf, select=c(pred, pred.se)), MARGIN = 1, FUN = function(x,y,z,n) rnorm(n = n, mean=x[y], sd=x[z]), n = rep, y=1, z=2) %>% data.frame() %>% t() 
+pred.rep<-apply(X = subset(counts.sf, select=c(pred, pred.sd)), MARGIN = 1, FUN = function(x,y,z,n) rnorm(n = n, mean=x[y], sd=x[z]), n = rep, y=1, z=2) %>% data.frame() %>% t() 
 
 sf.pred.rep<-sf.pred
 for (j in 1:ncol(pred.rep)) {
   counts.temp<-counts.sf
   counts.temp$pred<-pred.rep[,j] ##replace prediction with replicate prediction
   sf.pred.temp<-counts.temp %>% group_by(Year) %>% summarise(pred.sf=sum(pred*weight*error.weight)) %>% data.frame()
-  sf.pred.rep<-cbind(sf.pred.rep, sf.pred.rep=sf.pred.temp$pred.sf)
+  sf.pred.rep<-cbind(sf.pred.rep, pred.sf.rep=sf.pred.temp$pred.sf)
 }
 
 ##get mean regional prediction and CI
-sf.pred.mean<-subset(sf.pred.rep, select=str_detect(names(sf.pred.rep), pattern="sf.pred.rep")) %>% apply(MARGIN = 1, FUN = mean) %>% as.numeric() ##take only replicates
-sf.pred.sd<-subset(sf.pred.rep, select=str_detect(names(sf.pred.rep), pattern="sf.pred.rep")) %>% apply(MARGIN = 1, FUN = sd) %>% as.numeric()
+sf.pred.mean<-subset(sf.pred.rep, select=str_detect(names(sf.pred.rep), pattern="pred.sf.rep")) %>% apply(MARGIN = 1, FUN = mean) %>% as.numeric() ##take only replicates
+sf.pred.sd<-subset(sf.pred.rep, select=str_detect(names(sf.pred.rep), pattern="pred.sf.rep")) %>% apply(MARGIN = 1, FUN = sd) %>% as.numeric()
 sf.pred.lower<-sf.pred.mean - 1.96*sf.pred.sd/sqrt(rep)
-sf.pred.upper<-sf.pred.mean - 1.96*sf.pred.sd/sqrt(rep)
+sf.pred.upper<-sf.pred.mean + 1.96*sf.pred.sd/sqrt(rep)
 
 sf.pred$sf.pred.mean<-sf.pred.mean
 sf.pred$sf.pred.sd<-sf.pred.sd
@@ -849,9 +866,20 @@ for (j in 1:nrow(sf.pred)) {
 }
 
 ##PLOT SF TREND
+range.pred<-round(c(min(sf.pred$pred.sf), max(sf.pred$pred.sf)),1)
+range<-c(min(sf.pred$total), max(sf.pred$total))
 fig <- ggplot(data = sf.pred, aes(x=Year))
 fig <- fig + geom_path(aes(y = pred.sf))
+fig <- fig + geom_point(aes(y=normalize(total, range=range.pred, method="range")))
+#fig <- fig + geom_path(aes(y = sf.pred.mean))
+#fig <- fig + geom_path(aes(y = sf.pred.mean + sf.pred.sd), lty="dashed")
+#fig <- fig + geom_path(aes(y = sf.pred.mean - sf.pred.sd), lty="dashed")
+fig <- fig + ylab("SF Bay trend")
+fig <- fig + scale_y_continuous(breaks=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), sec.axis = sec_axis(~ ., name = "Total regional count", breaks = seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels = round(seq(range[1], range[2], (range[2]-range[1])/10), 0)))
+fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 2), labels=seq(1985, 2017, 2)) + theme(axis.text.x = element_text(angle = 45, hjust=1))
 fig
+
+png(filename = str_c("fig.SF.trend.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
 
 ##calculate % smaller
 #type.model<-lm(Ground~Aerial, data=data.temp)
