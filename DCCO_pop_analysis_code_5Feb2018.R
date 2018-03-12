@@ -786,6 +786,73 @@ data.temp<-subset(data.temp, select=c(Aerial, Boat, Boat.Ground, Ground))
 
 plot(Ground~Aerial, data=data.temp); abline(a = 0, b=1, lty="dashed"); abline(a= coefficients(lm(Ground~Aerial, data=data.temp))[1], b= coefficients(lm(Ground~Aerial, data=data.temp))[2])
 
+##GET REGIONAL TREND FOR ALL REGIONS
+counts.sf<-subset(counts.m8, select=c(Colony, Year, Region, pred, pred.se, Count)) ##decide if want to include bridges or not at this step
+
+###ADD WEIGHTS
+out<-dim(0)
+for (j in 1:nrow(counts.sf)) {
+  col.mean<-mean(subset(counts.sf, Colony==counts.sf$Colony[j])$Count, na.rm = T)
+  region.mean<-counts.sf %>% group_by(Colony) %>% summarise(col.mean = mean(Count, na.rm=T)) %>% data.frame() %>% summarise(region.mean=sum(col.mean)) %>% as.numeric() ##sum of mean colony sizes
+  weight<-col.mean/region.mean
+  
+  year.temp<-counts.sf$Year[j]
+  error.year<-subset(counts.sf, Year==year.temp) %>% summarise(error.year=sum(pred.se)) %>% as.numeric()
+  n.temp<-length(unique(subset(counts.sf, Year==year.temp)$Colony))
+  error.weight<-(1-counts.sf$pred.se[j]/error.year)/(n.temp-1)
+  
+  out<-rbind(out, c(weight, error.weight))
+}
+
+counts.sf$weight<-out[,1] ##mean colony size as a fraction of mean regional size
+counts.sf$error.weight<-out[,2]
+
+###GET SF TREND
+sf.pred<-counts.sf %>% group_by(Year) %>% summarise(total=sum(Count, na.rm=T), pred.sf=sum(pred*weight*error.weight)) %>% data.frame()
+
+###CALC SF TREND WITH ERROR
+edf.colony<-subset(model.plot$edf, str_detect(names(model.plot$edf), pattern="Colony"))
+names(edf.colony)<-str_sub(names(edf.colony), 15, -3)
+edf.df<-data.frame(Colony=names(edf.colony), edf=edf.colony)
+edf.sum<-edf.df %>% group_by(Colony) %>% summarise(edf.sum=sum(edf)) %>% data.frame()
+
+counts.sf<-dplyr::left_join(counts.sf, y=edf.sum, by = c("Colony","Colony"))
+counts.sf$pred.sd<-counts.sf$pred.se*sqrt(counts.sf$edf.sum+1)
+rep<-10000
+pred.rep<-apply(X = subset(counts.sf, select=c(pred, pred.se)), MARGIN = 1, FUN = function(x,y,z,n) rnorm(n = n, mean=x[y], sd=x[z]), n = rep, y=1, z=2) %>% data.frame() %>% t() 
+
+sf.pred.rep<-sf.pred
+for (j in 1:ncol(pred.rep)) {
+  counts.temp<-counts.sf
+  counts.temp$pred<-pred.rep[,j] ##replace prediction with replicate prediction
+  sf.pred.temp<-counts.temp %>% group_by(Year) %>% summarise(pred.sf=sum(pred*weight*error.weight)) %>% data.frame()
+  sf.pred.rep<-cbind(sf.pred.rep, sf.pred.rep=sf.pred.temp$pred.sf)
+}
+
+##get mean regional prediction and CI
+sf.pred.mean<-subset(sf.pred.rep, select=str_detect(names(sf.pred.rep), pattern="sf.pred.rep")) %>% apply(MARGIN = 1, FUN = mean) %>% as.numeric() ##take only replicates
+sf.pred.sd<-subset(sf.pred.rep, select=str_detect(names(sf.pred.rep), pattern="sf.pred.rep")) %>% apply(MARGIN = 1, FUN = sd) %>% as.numeric()
+sf.pred.lower<-sf.pred.mean - 1.96*sf.pred.sd/sqrt(rep)
+sf.pred.upper<-sf.pred.mean - 1.96*sf.pred.sd/sqrt(rep)
+
+sf.pred$sf.pred.mean<-sf.pred.mean
+sf.pred$sf.pred.sd<-sf.pred.sd
+sf.pred$sf.ci.lower<-sf.pred.lower
+sf.pred$sf.ci.upper<-sf.pred.upper
+
+##replace missing years of counts with NA
+for (j in 1:nrow(sf.pred)) {
+  dat.temp<-subset(counts.sf, Year==sf.pred$Year[j] & is.na(Count)==F)
+  if (nrow(dat.temp)==0) {
+    sf.pred$total[j]<-NA
+  }
+}
+
+##PLOT SF TREND
+fig <- ggplot(data = sf.pred, aes(x=Year))
+fig <- fig + geom_path(aes(y = pred.sf))
+fig
+
 ##calculate % smaller
 #type.model<-lm(Ground~Aerial, data=data.temp)
 #type.fun<-function(x) {coefficients(type.model)[2]*x+ coefficients(type.model)[1]}
