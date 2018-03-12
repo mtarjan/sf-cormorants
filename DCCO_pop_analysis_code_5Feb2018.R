@@ -421,7 +421,6 @@ M3<-gam(Count ~ s(Year, by=Colony) + Colony + s(day) + Survey.type,
         data = counts,
         family = poisson)
 
-
 #aic.results<-AIC(M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12)
 #round(aic.results, 0)
 AIC(M0, M1, M2, M3)
@@ -435,9 +434,9 @@ AIC(M0, M1, M2, M3)
 ##TABLE TO COMPARE MODEL FIT
 model.fit<-round(AIC(M0, M1, M2, M3),0)
 model.fit$Model<-c(M0$formula, M1$formula, M2$formula, M3$formula)
-model.fit$r.squared<-round(c(summary(M0)$r.sq, summary(M1)$r.sq, summary(M2)$r.sq, summary(M3)$r.sq),3)
+model.fit$UBRE<-round(c(summary(M0)$sp.criterion, summary(M1)$sp.criterion, summary(M2)$sp.criterion, summary(M3)$sp.criterion),3)
 model.fit$deviance.explained<-round(c(summary(M0)$dev.expl, summary(M1)$dev.expl, summary(M2)$dev.expl, summary(M3)$dev.expl),3)
-model.fit<-subset(model.fit, select=c(Model, df, AIC, r.squared, deviance.explained))
+model.fit<-subset(model.fit, select=c(Model, df, AIC, UBRE, deviance.explained))
 
 ##SELECT MODEL TO PLOT
 model.plot<-M3
@@ -717,6 +716,9 @@ for (j in 1:length(unique(regional.pred$Region))) {
   #fig <- fig + geom_path(aes(y=r.ci.upper), lty="dashed") + geom_path(aes(y=r.ci.lower), lty="dashed")
   fig <- fig + ylab("Regional trend")
   fig <- fig + geom_point(aes(y=normalize(x = total, range=range.pred, method="range")))
+  
+  #fig <- fig + geom_point(aes(y=normalize(x = total, range=c(min(r.pred.mean), max(r.pred.mean)), method="range")))
+  
   fig <- fig + scale_y_continuous(breaks=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), sec.axis = sec_axis(~ ., name = "Total regional count", breaks = seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels = round(seq(range[1], range[2], (range[2]-range[1])/10), 0)))
   fig <- fig + ggtitle(region.temp)
   fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 2), labels=seq(1985, 2017, 2)) + theme(axis.text.x = element_text(angle = 45, hjust=1))
@@ -785,9 +787,9 @@ data.temp<-subset(data.temp, select=c(Aerial, Boat, Boat.Ground, Ground))
 plot(Ground~Aerial, data=data.temp); abline(a = 0, b=1, lty="dashed"); abline(a= coefficients(lm(Ground~Aerial, data=data.temp))[1], b= coefficients(lm(Ground~Aerial, data=data.temp))[2])
 
 ##calculate % smaller
-type.model<-lm(Ground~Aerial, data=data.temp)
-type.fun<-function(x) {coefficients(type.model)[2]*x+ coefficients(type.model)[1]}
+#type.model<-lm(Ground~Aerial, data=data.temp)
+#type.fun<-function(x) {coefficients(type.model)[2]*x+ coefficients(type.model)[1]}
 
-(200-type.fun(200))/(200+type.fun(200))*100
+#(200-type.fun(200))/(200+type.fun(200))*100
 
 #source("DCCO_poptrend_code_07Mar2018.R")

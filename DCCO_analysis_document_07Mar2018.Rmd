@@ -32,15 +32,15 @@ General additive mixed models allow each colony to growth nonlinearly over time 
 
 Methods follow those of Shadish et al. 2014. GAMMs were devoped using the gam function in R. I considered the following models:
 
-Model 0) count ~ s(year * colony)
+Model 0) count ~ s(year * colony) + colony
 
-Model 1) count ~ s(year * colony) + s(day)
+Model 1) count ~ s(year * colony) + colony + s(day)
 
-Model 2) count ~ s(year * colony) + survey type
+Model 2) count ~ s(year * colony) + colony + survey type
 
-Model 3) count ~ s(year * colony) + s(day) + survey type
+Model 3) count ~ s(year * colony) + colony + s(day) + survey type
 
-where the s() function allows the estimate to vary nonlinearly, and the year*colony interaction allows that colony trend to change nonlinearly across years.
+where the s() function allows the estimate to vary nonlinearly, and the year by colony interaction allows the colony trend to change nonlinearly across years. I assessed the model fit using the un-biased risk estimator (UBRE), which is the minimised generalised cross-validation score of the fitted GAM. Lower UBRE scores indicate a better model fit to the data (Wood 2006). I also compared the models using AIC.
 
 I calcuated each annual regional trend estimate (mean and standard deviation) by simulating a distribution of regional estimates across a range of colony trend estimates. I randomly selected 10,000 replicate estimates for each colony*year parameter from a normal distribution of estimates, where the mean was equal to the mean reported by the model and the standard deviation (sd) was equal to the standard error (se) reported by the model multiplied by the square root of the estimated degrees of freedom (edf) plus one, such that:
 
@@ -52,21 +52,34 @@ The regional estimate for each year is thus represented by the mean and standard
 
 #Results
 ##Model selection
-The full model (count as a function of year, colony, day, and survey type) had the lowest AIC score of the four models tested, so we selected the full model to estimate regional trends. The full GAMM had an adjusted r-squared of `r round(summary(model.plot)$r.sq,2)` and the deviance explained was `r round(summary(model.plot)$dev.expl*100,0)`%. 
+Model 2 (count as a function of year, colony, and survey type) had the lowest AIC score of the four models tested. The models that included the day of season effect had high AIC scores because the effect requires that the model fit a substantially larger number of parameters. However, the full mode suggested that the day of season effect was significant (p<0.0001) and the parameter estimates indicated that counts collected early in the season are strongly biased. To avoid this bias, we selected the full model to estimate regional trends. The full GAMM had a UBRE score of `r round(summary(model.plot)$sp.criterion,2)` and the deviance explained was `r round(summary(model.plot)$dev.expl*100,0)`%. 
 
 ##Effects of covariates
-The parameter estimates for Aerial surveys differ significantly from Boat/Ground, Boat, and Ground surveys (p<0.0001). Survey date showed a non-linear trend, where surveys early in the season resulted in lower trend estimates.
+The parameter estimates for Aerial surveys differ significantly from Boat/Ground, Boat, and Ground surveys (p<0.001). Survey date showed a non-linear trend, where surveys early in the season and at the very end of the season resulted in lower trend estimates.
 
 ##Regional trends
+###Bridges Region
+Since 1992, DCCO colonies in the Bridges Region showed an overall increasing trend through 1999. Trend estimates remained high until a sharp decline, which began in 2003 and took off in 2004 until a regional low in 2010. The regional trend then increased until 2014 and fell again through 2017.
+
+###North Bay
+The North Bay region DCCO populations show very significant variability in trend estimates across colonies, with some growing and some declining in the same years. This lead to large error estimates in the regional trend, and also highly variable mean regional trend estimates that fluctuated around the same value for the duration of the study in that region, from 1989 to 2017.
+
+###Outer Coast
+DCCO colonies of the Outer Coast region show an increasing trend from the first count in 1997 to 2006, at which point the trend plateaus with only a slight increase from 2008 to 2013.
+
+###South Bay
+DCCO colonies in the South Bay region increased from the first count in 1988 to 2006, following which there was a slight dip in the trend in 2009/2010, and little notable increase through 2017.
+
+###South Farallon Islands
+The South Farallon Islands region, which is composed of only one colony, showed growth from 1987 to 2004, with faster rates from 1987-1991 and 1997-2003. The regional trend then decreased across the entire period from 2004-2017, with the lowest count of the study period recorded in 2015.
 
 #Works Cited
-Gotelli, N. J. 2008. A Primer of Ecology, 4th edition. Sinauer Associates, Inc. Sunderland, MA. 290 pp.
 
 Knape, J. (2016). Decomposing trends in Swedish bird populations using generalized additive mixed models. Journal of Applied Ecology, 53(6), 1852–1861. https://doi.org/10.1111/1365-2664.12720
 
-Manuwal, D. A., Carter, H. R., Zimmerman, T. S., & Orthmeyer, D. L. (2000). Biology and Conservation of the Common Murre in California, Oregon, Washington, and British Columbia Volume 1: Natural History and Population Trends. Information and Technology Report (Vol. 1).
-
 Shadish, W. R., Zuur, A. F., & Sullivan, K. J. (2014). Using generalized additive (mixed) models to analyze single case designs. Journal of School Psychology, 52(2), 149–178. https://doi.org/10.1016/j.jsp.2013.11.004
+
+Wood, S. N. (2006). Generalized Additive Models: An Introduction with R. Chapman and Hall/CRC.
 
 #Tables
 ```{r, echo=FALSE}
@@ -88,7 +101,7 @@ knitr::kable(model.fit)
 
 #Figures
 ```{r, echo=FALSE}
-knitr::include_graphics(path="C:/Users/max/Desktop/Tarjan/Science/GIS/DCCO_GIS/DCCO_sites_map_28Aug2017.jpg")
+knitr::include_graphics(path="C:/Users/max/Desktop/Tarjan/Science/GIS/DCCO_GIS/DCCO_sites_map_11Mar2018.png")
 
 figure.num<-figure.num+1
 ```
