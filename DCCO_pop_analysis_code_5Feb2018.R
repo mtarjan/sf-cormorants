@@ -25,12 +25,6 @@ counts<-read.xls("C:/Users/max/Desktop/Tarjan/Science/DCCO_counts_20Feb2018.xlsx
 #counts$Incomplete.year[which(counts$Region=="South Bay" & counts$Year %in% c(1992, 1997, 1998, 2000:2002, 2004, 2006:2013, 2016:2017))]<-"yes"##South Bay: Most importantly, San Mateo Bridge (~ 100 nests) is ND for several years, especially after 2005. We know it’s been active
 #counts$Incomplete.year[which(counts$Region=="South Farallon Islands" & counts$Year %in% c(1985, 1986, 1991, 1992, 2009, 2010, 2012))]<-"yes" ##eliminate years with ground data only
 
-
-##RESTRICTIONS
-##exclude seasonal total count type
-counts<-subset(counts, Count.type != "Seasonal total" & Region != "" & Region != "NA" & Exclude.comments=="")
-#counts<-subset(counts, Count.type != "Seasonal total" & Region != "" & Region != "NA")
-
 ##EXPAND DATA
 
 ##format date
@@ -47,6 +41,13 @@ counts$time.period[which(counts$time.period>2002 & counts$time.period != "pre")]
 
 ##get data for years with nearly complete data only, given Phil's designations
 #counts.complete<-subset(counts, is.na(Incomplete.year))
+
+counts.raw<-subset(counts, Count.type != "Seasonal total" & Region != "" & Region != "NA")
+
+##RESTRICTIONS
+##exclude seasonal total count type
+counts<-subset(counts.raw, Count.type != "Seasonal total" & Region != "" & Region != "NA" & Exclude.comments=="")
+#counts<-subset(counts, Count.type != "Seasonal total" & Region != "" & Region != "NA")
 
 ##VIEW DATA
 
@@ -793,7 +794,7 @@ fig
 png(filename = str_c("fig.type.effect.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
 
 ##plot effect of survey type
-data.temp<-subset(counts, select=c(Colony, Year, Count, Survey.type))
+data.temp<-subset(counts.raw, select=c(Colony, Year, Count, Survey.type), subset= Colony!="South Farallon Islands")
 data.temp<- data.temp %>% spread(key = Survey.type, value = Count) %>% data.frame()
 
 data.temp<-subset(data.temp, select=c(Aerial, Boat, Boat.Ground, Ground))
