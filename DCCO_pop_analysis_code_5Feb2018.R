@@ -17,7 +17,7 @@ library(BBmisc) ##required for normalize function
 
 ##load DCCO nest counts
 #counts<-read.csv("DCCO_counts_18Aug2017.csv")
-counts<-read.xls("C:/Users/max/Desktop/Tarjan/Science/DCCO_counts_20Feb2018.xlsx")
+counts<-read.xls("C:/Users/max/Desktop/Tarjan/Science/DCCO_counts_04Apr2018.xlsx")
 
 ##make edits to add incomplete year info
 #counts$Incomplete.year[which(counts$Region=="North Bay" & counts$Year %in% c(1991, 1992, 1995:2002))]<-"yes" ##north bay region missing knight island counts 1995-2002
