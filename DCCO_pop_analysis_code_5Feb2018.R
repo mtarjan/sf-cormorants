@@ -746,7 +746,7 @@ for (j in 1:length(unique(regional.pred$Region))) {
 ##plot effect of day
 ##simulate new data
 day<-seq(min(counts$day, na.rm=T), max(counts$day, na.rm=T), 1)
-day.sim<-data.frame(Year= rep(median(counts$Year), length(day)), Colony=rep("Bair Island Power Towers", length(day)), Region=rep("South Bay", length(day)), Survey.type=rep("Ground", length(day)), day=day)
+day.sim<-data.frame(Year= rep(median(counts$Year), length(day)), Colony=rep("Steinburger Slough", length(day)), Region=rep("South Bay", length(day)), Survey.type=rep("Ground", length(day)), day=day)
 ##get predications for new data
 pred<-predict(model.plot, newdata = day.sim, se.fit=T)$fit %>% as.numeric()
 pred.se<-predict(model.plot, newdata = day.sim, se.fit=T)$se.fit %>% as.numeric()
@@ -775,7 +775,7 @@ png(filename = str_c("fig.day.effect.png"), units="in", width=6.5, height=6.5,  
 
 ##effect of survey type on predicted trend value
 type<-as.character(unique(counts$Survey.type))
-type.sim<-data.frame(Year= rep(median(counts$Year), length(type)), Colony=rep("Bair Island Power Towers", length(type)), Region=rep("South Bay", length(type)), Survey.type=type, day=rep(round(mean(day, na.rm = T), 0), length(type)))
+type.sim<-data.frame(Year= rep(median(counts$Year), length(type)), Colony=rep("Steinburger Slough", length(type)), Region=rep("South Bay", length(type)), Survey.type=type, day=rep(round(mean(day, na.rm = T), 0), length(type)))
 ##get predications for new data
 pred<-predict(model.plot, newdata = type.sim, se.fit=T)$fit %>% as.numeric()
 pred.se<-predict(model.plot, newdata = type.sim, se.fit=T)$se.fit %>% as.numeric()
