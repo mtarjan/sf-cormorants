@@ -19,6 +19,20 @@ library(BBmisc) ##required for normalize function
 #counts<-read.csv("DCCO_counts_18Aug2017.csv")
 counts<-read.xls("C:/Users/max/Desktop/Tarjan/Science/DCCO_counts_04Apr2018.xlsx")
 
+counts$Colony<-as.character(counts$Colony)
+translator <- c('Alviso Plant, Pond Nos. A9 and A10' = 'Alviso Ponds A9/A10', 
+                'Alviso Plant, Pond No. A18' = 'Alviso Pond A18',
+                'Dumbarton Bridge Power Towers' = 'Dumbarton Towers',
+                'North San Pablo Bay Radar Target' = 'N. SP Bay Target',
+                'Northeast San Pablo Bay Beacon' = 'NE SP Bay Beacon',
+                'Petaluma Wastewater Treatment Plant' = 'Petaluma Plant',
+                'Plant No. 1, Pond No. 3A' = 'Plant 1/Pond N3A',
+                'San Mateo Bridge and PG&E Towers' = 'San Mateo Towers')
+acronyms<-translator[counts$Colony]
+counts$Colony[which(acronyms!='NA')]<-acronyms[which(acronyms!='NA')]
+
+counts$Colony<-factor(counts$Colony)
+
 ##make edits to add incomplete year info
 #counts$Incomplete.year[which(counts$Region=="North Bay" & counts$Year %in% c(1991, 1992, 1995:2002))]<-"yes" ##north bay region missing knight island counts 1995-2002
 #counts$Incomplete.year[which(counts$Region=="Outer Coast" & counts$Year ==2000)]<-"yes" ##Outer Coast: For 2000, we have a 0 for Hog Island, but Lake Merced is ND. So I think the 0 in 2000 in this Chart should be removed
@@ -653,10 +667,35 @@ for (j in 1:nrow(regional.pred)) {
   }
 }
 
+regional.pred.original<-regional.pred
+
+##make all values positive by adding minimum value
+#min.val<-min(subset(regional.pred, select=c(pred.regional,r.pred.sd,r.ci.lower,r.ci.upper)))
+#regional.pred<-cbind(subset(regional.pred, select=c(Year, Region,total)), subset(regional.pred, select=c(pred.regional, r.pred.mean,r.pred.sd, r.ci.lower,r.ci.upper))+abs(min.val))
+
 #min.year<-rep(1985, 5)
 min.year<-subset(regional.counts, is.na(total)==F) %>% group_by(Region) %>% summarize(min.year=min(Year)) %>% data.frame()
 min.year<-min.year$min.year
 #min.year<-c(1994, 1999, 2001, 2000, 1985) ##earliest year with sufficient data to look at trend. ordered same as colonies
+
+##TABLE OF PERCENT CHANGE
+Regions<-as.character(unique(regional.pred$Region))
+dur<-c(str_c(min.year, "-2003"), rep("2003-2017",length(Regions)), str_c(min.year, "-2017"))
+change.dat<-data.frame(Region=rep(Regions,3), Years=dur, start=c(min.year, rep(2003, length(Regions)), min.year), end=c(rep(2003, length(Regions)), rep(2017, length(Regions)*2)), percent.change=NA, upper95=NA, lower95=NA)
+
+for (j in 1:nrow(change.dat)) {
+  initial.temp<-subset(regional.pred, as.character(Region)==as.character(change.dat$Region[j]) & Year==change.dat$start[j])
+  final.temp<-subset(regional.pred, as.character(Region)==as.character(change.dat$Region[j]) & Year==change.dat$end[j])
+  change.dat$percent.change[j]<-round((final.temp$pred.regional-initial.temp$pred.regional)/initial.temp$pred.regional*100,2)
+  ##take care of issue with negative values
+  if (final.temp$pred.regional>initial.temp$pred.regional & change.dat$percent.change[j] <0) {change.dat$percent.change[j]<-change.dat$percent.change[j]*-1}
+  
+  #change.dat$upper95[j]<-round((final.temp$pred.regional-initial.temp$pred.regional)/initial.temp$pred.regional*100,2)
+}
+
+change.dat<-change.dat[order(change.dat$Region),]
+change.dat<-subset(change.dat, select=-c(start, end))
+
 ##plot trends for each colony
 for (j in 1:length(unique(regional.pred$Region))) {
   region.temp<-unique(regional.pred$Region)[j]
@@ -668,28 +707,22 @@ for (j in 1:length(unique(regional.pred$Region))) {
   range.pred<-round(c(min(data.plot$pred-data.plot$pred.se, na.rm=T), max(data.plot$pred+data.plot$pred.se, na.rm=T)),1) 
   
   fig <- ggplot(data = data.plot, aes(x=Year))
-  fig <- fig + geom_point(aes(y=Count, color=Survey.type.y))
-  fig <- fig + geom_path(aes(y=pred.norm))
-  
-  #fig <- fig + geom_path(aes(y=pred))
-  #fig <- fig + geom_path(aes(y=pred+pred.se), lty="dashed") + geom_path(aes(y=pred-pred.se), lty="dashed")
-  
-  #fig <- fig + geom_point(aes(y=normalize(Count, range=range.pred, method="range"), color=Survey.type.y))
-    
-  fig <- fig + scale_colour_discrete(name="Survey type")
-  fig <- fig + ggtitle(region.temp)
-  fig <- fig + facet_wrap(~Colony, scales = "free_y")
-  fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 3), labels=seq(1985, 2017, 3)) + theme(axis.text.x = element_text(angle = 45, hjust=1))
-  #fig <- fig + scale_y_continuous(breaks=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), name="Trend", sec.axis = sec_axis(~ ., name = "Count", breaks = seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels = round(seq(range[1], range[2], (range[2]-range[1])/10), 0)))
+  fig <- fig + geom_point(aes(y=Count))
+  #fig <- fig + geom_point(aes(y=Count, color=Survey.type.y))
+  #fig <- fig + geom_path(aes(y=pred.norm))
+  #fig <- fig + scale_colour_discrete(name="Survey type")
+  fig <- fig + theme_classic()
+  fig <- fig + theme(strip.background = element_rect(colour = "white", fill = "white"))
+  fig <- fig + ggtitle(region.temp) + ylab(label = "Number of DCCO nests")
+  fig <- fig + facet_wrap(~Colony, scales="free")
+  fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 5), lim=c(1985,2017)) + theme(axis.text.x = element_text(angle = 45, hjust=1))
+  fig <- fig + scale_y_continuous(breaks = seq(range[1], range[2],round((range[2]-range[1])/10, 0)), lim=c(range[1], range[2]))
   fig
   
-  if (length(unique(data.plot$Colony))==2) {
-    png(filename = str_c("fig.",region.temp, ".counts.colonies.png"), units="in", width=6.5, height=3.5,  res=200);print(fig); dev.off()
-  } else {
-    png(filename = str_c("fig.",region.temp, ".counts.colonies.png"), units="in", width=6.5, height=5.5,  res=200);print(fig); dev.off()
-  }
+  fig.heights<-c(3, 7.5, 5, 6, 5)
+  png(filename = str_c("fig.",region.temp, ".counts.colonies.png"), units="in", width=6.5, height=fig.heights[j],  res=200);print(fig); dev.off()
   
-  ##plot the predictions with SE
+  ##plot the colony predictions with SE
   data.plot<-subset(counts.m8.sub, Region==region.temp)
   fig <- ggplot(data = data.plot, aes(x=Year))
   fig <- fig + geom_path(aes(y=pred)) + geom_path(aes(y=pred+pred.se), lty="dashed") + geom_path(aes(y=pred-pred.se), lty="dashed")
@@ -699,7 +732,7 @@ for (j in 1:length(unique(regional.pred$Region))) {
   fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 3), labels=seq(1985, 2017, 3)) + theme(axis.text.x = element_text(angle = 45, hjust=1))
   fig
   
-  png(filename = str_c("fig.",region.temp, ".gam.colonies.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
+  #png(filename = str_c("fig.",region.temp, ".gam.colonies.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
   
   ##plot trends by region
   data.plot.region<-subset(regional.pred, Region==region.temp & Year >= min.year[j] & Year <= max(data.plot$Year))
@@ -708,39 +741,65 @@ for (j in 1:length(unique(regional.pred$Region))) {
   range.pred<-round(c(min(data.plot.region$r.pred.mean-data.plot.region$r.pred.sd, na.rm=T), max(data.plot.region$r.pred.mean+data.plot.region$r.pred.sd, na.rm=T)),1) ##switch to mean from replicated
   
   fig <- ggplot(data = data.plot.region, aes(x=Year))
-  #fig <- fig + geom_point(aes(y=total))
-  #fig <- fig + geom_path(aes(y=normalize(pred.regional, range=range, method="range")))
-  #fig <- fig + geom_path(aes(y=normalize(pred.regional, range=range.pred, method="range")), color="blue")
   fig <- fig + geom_path(aes(y=r.pred.mean))
-  fig <- fig + geom_path(aes(y=r.pred.mean+r.pred.sd), lty="dashed")
-  fig <- fig + geom_path(aes(y=r.pred.mean-r.pred.sd), lty="dashed")
-  #fig <- fig + geom_path(aes(y=r.ci.upper), lty="dashed") + geom_path(aes(y=r.ci.lower), lty="dashed")
+  #fig <- fig + geom_path(aes(y=r.pred.mean+r.pred.sd), lty="dashed")
+  #fig <- fig + geom_path(aes(y=r.pred.mean-r.pred.sd), lty="dashed")
   fig <- fig + ylab("Regional trend")
-  fig <- fig + geom_point(aes(y=normalize(x = total, range=range.pred, method="range")))
-  
-  #fig <- fig + geom_point(aes(y=normalize(x = total, range=c(min(r.pred.mean), max(r.pred.mean)), method="range")))
-  
-  fig <- fig + scale_y_continuous(breaks=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), sec.axis = sec_axis(~ ., name = "Total regional count", breaks = seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels = round(seq(range[1], range[2], (range[2]-range[1])/10), 0)))
+  #fig <- fig + geom_point(aes(y=normalize(x = total, range=range.pred, method="range")))
+  #fig <- fig + scale_y_continuous(breaks=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), sec.axis = sec_axis(~ ., name = "Total regional count", breaks = seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels = round(seq(range[1], range[2], (range[2]-range[1])/10), 0)))
+  fig <- fig + scale_y_continuous(breaks= seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10))
   fig <- fig + ggtitle(region.temp)
   fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 2), labels=seq(1985, 2017, 2)) + theme(axis.text.x = element_text(angle = 45, hjust=1))
   fig
   
-  png(filename = str_c("fig.",region.temp, ".gam.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
+  #png(filename = str_c("fig.",region.temp, ".gam.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
   
-  if (region.temp=="North Bay") {
-    range.pred<-round(c(min(data.plot.region$pred.regional), max(data.plot.region$pred.regional)),1)
-    fig <- ggplot(data = data.plot.region, aes(x=Year))
-    fig <- fig + geom_path(aes(y=pred.regional))
-    fig <- fig + geom_point(aes(y=normalize(x = total, range=range.pred, method="range")))
-    fig <- fig + ylab("Regional trend")
-    fig <- fig + scale_y_continuous(breaks=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), sec.axis = sec_axis(~ ., name = "Total regional count", breaks = seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels = round(seq(range[1], range[2], (range[2]-range[1])/10), 0)))
-    fig <- fig + ggtitle(region.temp)
-    fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 2), labels=seq(1985, 2017, 2)) + theme(axis.text.x = element_text(angle = 45, hjust=1))
-    fig
+  #if (region.temp=="North Bay") {
+  #  range.pred<-round(c(min(data.plot.region$pred.regional), max(data.plot.region$pred.regional)),1)
+  #  fig <- ggplot(data = data.plot.region, aes(x=Year))
+  #  fig <- fig + geom_path(aes(y=pred.regional))
+  #  fig <- fig + geom_point(aes(y=normalize(x = total, range=range.pred, method="range")))
+  #  fig <- fig + ylab("Regional trend")
+  #  fig <- fig + scale_y_continuous(breaks=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), sec.axis = sec_axis(~ ., name = "Total regional count", breaks = seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels = round(seq(range[1], range[2], (range[2]-range[1])/10), 0)))
+  #  fig <- fig + ggtitle(region.temp)
+  #  fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 2), labels=seq(1985, 2017, 2)) + theme(axis.text.x = element_text(angle = 45, hjust=1))
+  #  fig
     
-    png(filename = str_c("fig.",region.temp, ".gam.NoError.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
-  }
+  #  png(filename = str_c("fig.",region.temp, ".gam.NoError.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
+  #}
 }
+
+##PLOT REGIONAL TRENDS
+##subset by min.year & ##scale the regional trend values so can match up magnitudes
+dat.plot<-dim(0)
+for (j in 1:length(unique(regional.pred$Region))) {
+  dat.temp<-subset(regional.pred, Region==unique(regional.pred$Region)[j] & Year >= min.year[j])
+  dat.temp$trend.norm<-normalize(dat.temp$pred.regional, range=c(0,100), method="range")
+  dat.plot<-rbind(dat.plot, dat.temp)
+}
+
+##plot as facets
+fig <- ggplot(dat.plot, aes(x=Year, y=trend.norm))
+fig <- fig + geom_path(size=1.1)
+fig <- fig + facet_wrap(~Region, scales="free")
+fig <- fig + theme_classic() 
+fig <- fig + ylab(label = "Trend")
+fig <- fig + scale_x_continuous(breaks=seq(1980, 2017, 5), limits = c(1982,2017))
+fig <- fig + theme(axis.text.x = element_text(angle = 45, hjust=1))
+fig <- fig + scale_y_continuous(breaks= seq(0,100,10))
+fig <- fig + theme(strip.background = element_rect(colour = "white", fill = "white"))
+fig
+
+png(filename = str_c("fig.regional.trends.facet.png"), units="in", width=6.5, height=5,  res=200);print(fig); dev.off()
+
+##plot with overlap
+fig <- ggplot(dat.plot, aes(x=Year, y=trend.norm, color=Region))
+fig <- fig + geom_path()
+fig <- fig + theme_bw() 
+fig <- fig + ylab(label = "Trend")
+fig <- fig + scale_x_continuous(breaks=seq(1980, 2017, 3))
+fig <- fig + theme(axis.text.x = element_text(angle = 45, hjust=1))
+fig
 
 ##PLOT EFFECTS OF COVARIATES
 ##plot effect of day
@@ -759,9 +818,12 @@ fig <- fig + geom_path(aes(y=pred+pred.se), lty="dashed")
 fig <- fig + geom_path(aes(y=pred-pred.se), lty="dashed")
 fig <- fig + ylab("Predicted trend value")
 fig <- fig + xlab("Count date (i.e. day of year)")
+fig <- fig + theme_classic()
+fig <- fig + scale_x_continuous(breaks=seq(0,300, 10))
+fig <- fig + scale_y_continuous(breaks=seq(0,6,0.25))
 fig
 
-png(filename = str_c("fig.day.effect.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
+png(filename = str_c("fig.day.effect.png"), units="in", width=5, height=5,  res=200);print(fig); dev.off()
 
 ##effect of count date on counts
 #plot(Count~day, data=counts); abline(a= coefficients(lm(Count~day, data=counts))[1], b= coefficients(lm(Count~day, data=counts))[2])
@@ -787,6 +849,7 @@ fig <- fig + geom_point(size=2)
 fig <- fig + geom_errorbar(aes(ymin=pred-pred.se, ymax=pred+pred.se, width=0.25))
 fig <- fig + ylab("Predicted trend value")
 fig <- fig + xlab("Survey type")
+fig <- fig + theme_classic()
 fig <- fig + scale_y_continuous(limits = c(min(pred-pred.se-0.5), max(pred+pred.se+0.5)), breaks = seq(1,10, 0.25))
 fig <- fig + theme(text = element_text(size=16))
 fig

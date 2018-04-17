@@ -99,6 +99,14 @@ Table `r table.num`. Model fit and deviance explained for the four GAMMs tested.
 knitr::kable(model.fit)
 ```
 
+```{r, echo=FALSE}
+table.num<-table.num+1
+```
+Table `r table.num`. Percent change in each region across pre- bridge construction (start-2003), post- bridge construction (2003-2017), and all (start-2017) years.
+```{r, echo=FALSE}
+knitr::kable(change.dat)
+```
+
 #Figures
 ```{r, echo=FALSE}
 knitr::include_graphics(path="C:/Users/max/Desktop/Tarjan/Science/GIS/DCCO_GIS/DCCO_sites_map_11Mar2018.png")
@@ -110,55 +118,51 @@ Fig `r figure.num`. Map of DCCO nesting sites from 1985-2017 in the San Francisc
 
 ```{r, echo=FALSE}
 knitr::include_graphics(path="fig.Bridges.counts.colonies.png")
-knitr::include_graphics(path="fig.Bridges.gam.colonies.png")
-knitr::include_graphics(path="fig.Bridges.gam.png")
 figure.num<-figure.num+1
 ```
-Fig `r figure.num`. Colony counts (top), GAM colony trends with SE (middle), and GAM regional trend with SD (bottom) for Bridges region. Note that the trend estimates are on a different scale from the counts, so the trend estimates cannot be used to visually estimate count predictions.
+Fig `r figure.num`. Colony counts for Bridges region.
 
 ######Page break
 ```{r, echo=FALSE}
 knitr::include_graphics(path="fig.North Bay.counts.colonies.png")
-knitr::include_graphics(path="fig.North Bay.gam.colonies.png")
-knitr::include_graphics(path="fig.North Bay.gam.NoError.png")
-knitr::include_graphics(path="fig.North Bay.gam.png")
 figure.num<-figure.num+1
 ```
-Fig `r figure.num`. Colony counts (top), GAM colony trends with SE (middle), and GAM regional trend with (middle) and without SD (bottom) for North Bay region. Note that the trend estimates are on a different scale from the counts, so the trend estimates cannot be used to visually estimate count predictions.
+Fig `r figure.num`. Colony counts for North Bay region.
 
 ######Page break
 ```{r, echo=FALSE}
 knitr::include_graphics(path="fig.Outer Coast.counts.colonies.png")
-knitr::include_graphics(path="fig.Outer Coast.gam.colonies.png")
-knitr::include_graphics(path="fig.Outer Coast.gam.png")
 figure.num<-figure.num+1
 ```
-Fig `r figure.num`. Colony counts (top), GAM colony trends with SE (middle), and GAM regional trend with SD (bottom) for Outer Coast region. Note that the trend estimates are on a different scale from the counts, so the trend estimates cannot be used to visually estimate count predictions.
+Fig `r figure.num`. Colony counts for Outer Coast region.
 
 ######Page break
 ```{r, echo=FALSE}
 knitr::include_graphics(path="fig.South Bay.counts.colonies.png")
-knitr::include_graphics(path="fig.South Bay.gam.colonies.png")
-knitr::include_graphics(path="fig.South Bay.gam.png")
 figure.num<-figure.num+1
 ```
-Fig `r figure.num`. Colony counts (top), GAM colony trends with SE (middle), and GAM regional trend with SD (bottom) for South Bay region. Note that the trend estimates are on a different scale from the counts, so the trend estimates cannot be used to visually estimate count predictions.
+Fig `r figure.num`. Colony counts for South Bay region. 
 
 ######Page break
 ```{r, echo=FALSE}
 knitr::include_graphics(path="fig.South Farallon Islands.counts.colonies.png")
-knitr::include_graphics(path="fig.South Farallon Islands.gam.colonies.png")
-knitr::include_graphics(path="fig.South Farallon Islands.gam.png")
 figure.num<-figure.num+1
 ```
-Fig `r figure.num`. Colony counts (top), GAM colony trends with SE (middle), and GAM regional trend with SD (bottom) for South Farallon Islands region. Note that the trend estimates are on a different scale from the counts, so the trend estimates cannot be used to visually estimate count predictions.
+Fig `r figure.num`. Colony counts for South Farallon Islands region.
+
+######Page break
+```{r, echo=FALSE}
+knitr::include_graphics(path="fig.regional.trends.facet.png")
+figure.num<-figure.num+1
+```
+Fig `r figure.num`. Standardized GAM trends for each region in SF Bay.
 
 ######Page break
 ```{r, echo=FALSE}
 knitr::include_graphics(path="fig.SF.trend.png")
 figure.num<-figure.num+1
 ```
-Fig `r figure.num`. GAM trend for all SF Bay colonies. Note that the trend estimates are on a different scale from the counts, so the trend estimates cannot be used to visually estimate count predictions.
+Fig `r figure.num`. GAM trend for all SF Bay colonies.
 
 ######Page break
 ```{r, echo=FALSE}
