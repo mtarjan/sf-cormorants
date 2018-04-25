@@ -62,7 +62,7 @@ The parameter estimates for Aerial surveys differ significantly from Boat/Ground
 Since 1992, DCCO colonies in the Bridges Region showed an overall increasing trend through 1999. Trend estimates remained high until a sharp decline, which began in 2003 and took off in 2004 until a regional low in 2010. The regional trend then increased until 2014 and fell again through 2017.
 
 ###North Bay
-The North Bay region DCCO populations show an increase in trend from 1989 until 2008, and then decrease until 2017. The North Bay region has more colonies than other regions considered and shows significant variability in trend estimates across colonies, with some growing and some declining in the same years. This led to large error estimates in the regional trend. The trend estimate is graphed with and without error to show the mean estimate and the large error on relevant scales.
+The North Bay region DCCO populations show an increase in trend from 1989 until 2008, and then decrease until 2017. The North Bay region has more colonies than other regions considered and shows significant variability in trend estimates across colonies, with some growing and some declining in the same years. This led to large error estimates in the regional trend.
 
 ###Outer Coast
 DCCO colonies of the Outer Coast region show an increasing trend from the first count in 1997 to 2006, at which point the trend plateaus with only a slight increase from 2008 to 2013.

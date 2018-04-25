@@ -541,9 +541,17 @@ new.dat$Year<-as.numeric(as.character(new.dat$Year))
 new.dat$Colony<-as.factor(new.dat$Colony)
 ##use Model.plot
 ##PREDICT ACROSS FULL RANGE OF YEARS FOR EACH SITE; THEN CALCUATE REGIONAL PREDICTED COUNTS
-pred<-predict(model.plot, newdata = new.dat, se.fit=T)$fit %>% as.numeric()
-pred.se<-predict(model.plot, newdata = new.dat, se.fit=T)$se.fit %>% as.numeric()
+predictions<-predict.gam(object = model.plot, newdata = new.dat, type = "response", se.fit = T)
+pred<-as.numeric(predictions$fit)
+pred.se<-as.numeric(predictions$se.fit)
+
+##former version that got predictions on the linear predictor scale
+#pred<-predict(model.plot, newdata = new.dat, se.fit=T)$fit %>% as.numeric()
+#pred.se<-predict(model.plot, newdata = new.dat, se.fit=T)$se.fit %>% as.numeric()
+##confidence intervals
+#ci<-MASS::confint(model.plot, level=0.95, trace=F)
 counts.m8<-cbind(new.dat, pred, pred.se)
+counts.m8<-subset(counts.m8, pred !="Inf")
 
 ##add field counts to predicted counts.m8
 #counts.temp<-counts; counts.temp$colony.year<-str_c(as.character(counts$Colony), counts$Year)
@@ -681,16 +689,35 @@ min.year<-min.year$min.year
 ##TABLE OF PERCENT CHANGE
 Regions<-as.character(unique(regional.pred$Region))
 dur<-c(str_c(min.year, "-2003"), rep("2003-2017",length(Regions)), str_c(min.year, "-2017"))
-change.dat<-data.frame(Region=rep(Regions,3), Years=dur, start=c(min.year, rep(2003, length(Regions)), min.year), end=c(rep(2003, length(Regions)), rep(2017, length(Regions)*2)), percent.change=NA, upper95=NA, lower95=NA)
+change.dat<-data.frame(Region=rep(Regions,3), Years=dur, start=c(min.year, rep(2003, length(Regions)), min.year), end=c(rep(2003, length(Regions)), rep(2017, length(Regions)*2)), percent.change=NA, percent.change.rep=NA, upper95=NA, lower95=NA)
 
 for (j in 1:nrow(change.dat)) {
-  initial.temp<-subset(regional.pred, as.character(Region)==as.character(change.dat$Region[j]) & Year==change.dat$start[j])
-  final.temp<-subset(regional.pred, as.character(Region)==as.character(change.dat$Region[j]) & Year==change.dat$end[j])
+  region.temp<-as.character(change.dat$Region[j])
+  start.year.temp<-change.dat$start[j]
+  end.year.temp<-change.dat$end[j]
+  
+  initial.temp<-subset(regional.pred, as.character(Region)==region.temp & Year==start.year.temp)
+  final.temp<-subset(regional.pred, as.character(Region)==region.temp & Year==end.year.temp)
   change.dat$percent.change[j]<-round((final.temp$pred.regional-initial.temp$pred.regional)/initial.temp$pred.regional*100,2)
+  
   ##take care of issue with negative values
   if (final.temp$pred.regional>initial.temp$pred.regional & change.dat$percent.change[j] <0) {change.dat$percent.change[j]<-change.dat$percent.change[j]*-1}
   
   #change.dat$upper95[j]<-round((final.temp$pred.regional-initial.temp$pred.regional)/initial.temp$pred.regional*100,2)
+  
+  ##alternatively, get distribution of % change and take mean and 95% CI
+  initial.rep<-as.numeric(subset(regional.pred.rep, Region==region.temp & Year==start.year.temp, select= -c(Year, Region,total,pred.regional)))
+  final.rep<-as.numeric(subset(regional.pred.rep, Region==region.temp & Year==end.year.temp, select= -c(Year, Region,total,pred.regional)))
+  
+  percent.change.rep<-round((final.rep-initial.rep)/initial.rep*100,2)
+  ##take care of issue with negative values
+  percent.change.rep[which(final.rep>initial.rep & percent.change.rep<0)]<-percent.change.rep[which(final.rep>initial.rep & percent.change.rep<0)]*-1
+  mean.change<-round(mean(percent.change.rep, na.rm = T),2)
+  sd.change<-round(sd(percent.change.rep, na.rm=T),2)
+  
+  change.dat$percent.change.rep[j]<-mean.change
+  change.dat$upper95[j]<-mean.change + round(1.96*sd.change/sqrt(length(percent.change.rep)),2)
+  change.dat$lower95[j]<-mean.change - round(1.96*sd.change/sqrt(length(percent.change.rep)),2)
 }
 
 change.dat<-change.dat[order(change.dat$Region),]
@@ -774,19 +801,20 @@ for (j in 1:length(unique(regional.pred$Region))) {
 dat.plot<-dim(0)
 for (j in 1:length(unique(regional.pred$Region))) {
   dat.temp<-subset(regional.pred, Region==unique(regional.pred$Region)[j] & Year >= min.year[j])
-  dat.temp$trend.norm<-normalize(dat.temp$pred.regional, range=c(0,100), method="range")
+  #dat.temp$trend.norm<-normalize(dat.temp$pred.regional, range=c(0,100), method="range")
   dat.plot<-rbind(dat.plot, dat.temp)
 }
 
 ##plot as facets
-fig <- ggplot(dat.plot, aes(x=Year, y=trend.norm))
+fig <- ggplot(dat.plot, aes(x=Year, y=pred.regional))
 fig <- fig + geom_path(size=1.1)
-fig <- fig + facet_wrap(~Region, scales="free")
+#fig <- fig + geom_path(aes(y=r.pred.mean+r.pred.sd)) + geom_path(aes(y=r.pred.mean-r.pred.sd)) ##add error
+fig <- fig + facet_wrap(~Region)
 fig <- fig + theme_classic() 
 fig <- fig + ylab(label = "Trend")
 fig <- fig + scale_x_continuous(breaks=seq(1980, 2017, 5), limits = c(1982,2017))
 fig <- fig + theme(axis.text.x = element_text(angle = 45, hjust=1))
-fig <- fig + scale_y_continuous(breaks= seq(0,100,10))
+fig <- fig + scale_y_continuous(breaks= round(seq(min(dat.plot$pred.regional),max(dat.plot$pred.regional),max(dat.plot$pred.regional)/10),0))
 fig <- fig + theme(strip.background = element_rect(colour = "white", fill = "white"))
 fig
 
