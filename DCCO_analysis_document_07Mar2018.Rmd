@@ -152,10 +152,10 @@ Fig `r figure.num`. Colony counts for South Farallon Islands region.
 
 ######Page break
 ```{r, echo=FALSE}
-knitr::include_graphics(path="fig.regional.trends.facet.png")
+knitr::include_graphics(path="fig.regional.trends.facet.freey.png")
 figure.num<-figure.num+1
 ```
-Fig `r figure.num`. Standardized GAM trends for each region in SF Bay.
+Fig `r figure.num`. Linear predictor GAM trends for each region in SF Bay with variable y-axis scales.
 
 ######Page break
 ```{r, echo=FALSE}
@@ -177,4 +177,11 @@ knitr::include_graphics(path="fig.type.effect.png")
 figure.num<-figure.num+1
 ```
 Fig `r figure.num`. Effect of survey type illustreated using the predicted trend value for a standard site, year, and day with standard error bars. This plot illustrates that survey types result in counts that differ in their similarity to the latent colony size. Counts from Aerial surveys differ significantly from Boat/Ground, Boat, and Ground surveys.  Aerial surveys that report a given colony count result in trend estimates that are `r round((subset(counts.type, Survey.type=="Aerial")$pred-subset(counts.type, Survey.type=="Ground")$pred)/(subset(counts.type, Survey.type=="Aerial")$pred+subset(counts.type, Survey.type=="Ground")$pred)*100, 2)`% larger than a Ground survey reporting the same colony count. 
+
+######Page break
+#Appendix I
+Summary of model 3 coefficients and fit.
+```{r, echo=FALSE}
+summary(model.plot)
+```
 

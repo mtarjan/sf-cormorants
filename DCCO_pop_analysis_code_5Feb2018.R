@@ -541,7 +541,7 @@ new.dat$Year<-as.numeric(as.character(new.dat$Year))
 new.dat$Colony<-as.factor(new.dat$Colony)
 ##use Model.plot
 ##PREDICT ACROSS FULL RANGE OF YEARS FOR EACH SITE; THEN CALCUATE REGIONAL PREDICTED COUNTS
-predictions<-predict.gam(object = model.plot, newdata = new.dat, type = "response", se.fit = T)
+predictions<-predict.gam(object = model.plot, newdata = new.dat, type = "link", se.fit = T) ##TYPE CAN BE RESPONSE OR LINK
 pred<-as.numeric(predictions$fit)
 pred.se<-as.numeric(predictions$se.fit)
 
@@ -820,14 +820,30 @@ fig
 
 png(filename = str_c("fig.regional.trends.facet.png"), units="in", width=6.5, height=5,  res=200);print(fig); dev.off()
 
+##plot with free scales
+fig <- ggplot(dat.plot, aes(x=Year, y=pred.regional))
+fig <- fig + geom_path(size=1.1)
+fig <- fig + facet_wrap(~Region, scale="free_y")
+fig <- fig + theme_classic() 
+fig <- fig + ylab(label = "Trend")
+fig <- fig + scale_x_continuous(breaks=seq(1980, 2017, 5), limits = c(1982,2017))
+fig <- fig + theme(axis.text.x = element_text(angle = 45, hjust=1))
+fig <- fig + scale_y_continuous(breaks= round(seq(min(dat.plot$pred.regional),max(dat.plot$pred.regional),max(dat.plot$pred.regional)/10),0))
+fig <- fig + theme(strip.background = element_rect(colour = "white", fill = "white"))
+fig
+
+png(filename = str_c("fig.regional.trends.facet.freey.png"), units="in", width=6.5, height=5,  res=200);print(fig); dev.off()
+
 ##plot with overlap
-fig <- ggplot(dat.plot, aes(x=Year, y=trend.norm, color=Region))
-fig <- fig + geom_path()
+fig <- ggplot(dat.plot, aes(x=Year, y=pred.regional, color=Region))
+fig <- fig + geom_path(size=1.1)
 fig <- fig + theme_bw() 
 fig <- fig + ylab(label = "Trend")
 fig <- fig + scale_x_continuous(breaks=seq(1980, 2017, 3))
 fig <- fig + theme(axis.text.x = element_text(angle = 45, hjust=1))
 fig
+
+png(filename = str_c("fig.regional.trends.overlap.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
 
 ##PLOT EFFECTS OF COVARIATES
 ##plot effect of day
