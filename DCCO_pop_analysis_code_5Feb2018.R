@@ -377,6 +377,11 @@ fig3d
 
 ##LINEAR MODELS WITH TIME BREAKS
 
+##SUBSET COUNTS TO BIG SITES
+large.sites<-counts %>% group_by(Region, Colony) %>% summarise(max.count=max(Count), mean.count=mean(Count)) %>% data.frame() %>% subset(subset = max.count>25)
+large.sites<-large.sites$Colony
+counts.sub<-subset(counts, Colony %in% large.sites)
+
 ##GAM
 ##code from Shadish et al. 2014. Using generalized additive (mixed) models to analyze single case designs. (in Mendeley)
 
@@ -567,6 +572,31 @@ colnames(counts.m8)[ncol(counts.m8)]<-"Count"
 head(counts.m8)
 
 #plot(pred~Count, data=counts.m8)
+##subset counts.m8 to years when there is known info about each colony
+counts.m8.sub<-dim(0)
+for (j in 1:length(unique(counts.m8$Colony))) {
+  colony.temp<-unique(counts.m8$Colony)[j]
+  min.year<-min(subset(counts.m8, Colony==colony.temp & is.na(Count)==F)$Year, na.rm=T)
+  max.year<-max(subset(counts.m8, Colony==colony.temp & is.na(Count)==F)$Year, na.rm=T)
+  
+  counts.m8.sub<-rbind(counts.m8.sub, subset(counts.m8, Colony==colony.temp & Year >= min.year & Year <= max.year))
+}
+
+head(counts.m8.sub)
+
+##add normalized predictor by colony
+counts.m8.sub$pred.norm<-rep(NA, nrow(counts.m8.sub))
+for (j in 1:length(unique(counts.m8.sub$Colony))) {
+  colony.temp<-unique(counts.m8.sub$Colony)[j]
+  dat.temp<-subset(counts.m8.sub, Colony==colony.temp)
+  range.min<-min(dat.temp$Count, na.rm=T)
+  range.max<-max(dat.temp$Count, na.rm=T)
+  norm.temp<-normalize(dat.temp$pred, range=c(range.min, range.max), method="range")
+  counts.m8.sub$pred.norm[which(counts.m8.sub$Colony==colony.temp)]<-norm.temp
+}
+
+##subset counts m8 to get large colonies only
+counts.m8<-subset(counts.m8, Colony %in% large.sites)
 
 ##get a weight for the predictions based on relative colony size (the average size of the colony / the size of the regional counts) and relative error (estimated erro / sum of error for all sites in the region in that year). relative colony size and relative error should each sum to one across colonies in year x for each region
 out<-dim(0)
@@ -600,29 +630,6 @@ counts.m8 %>% group_by(Year, Region) %>% summarize(weights=sum(error.weight))
 
 ##divide the weight by the standard error (less weight given to estimates with more se)
 #counts.m8$weight2<-ifelse(counts.m8$pred.se==0, counts.m8$weight, counts.m8$weight/counts.m8$pred.se)
-
-##subset counts.m8 to years when there is known info about each colony
-counts.m8.sub<-dim(0)
-for (j in 1:length(unique(counts.m8$Colony))) {
-  colony.temp<-unique(counts.m8$Colony)[j]
-  min.year<-min(subset(counts.m8, Colony==colony.temp & is.na(Count)==F)$Year, na.rm=T)
-  max.year<-max(subset(counts.m8, Colony==colony.temp & is.na(Count)==F)$Year, na.rm=T)
-  
-  counts.m8.sub<-rbind(counts.m8.sub, subset(counts.m8, Colony==colony.temp & Year >= min.year & Year <= max.year))
-}
-
-head(counts.m8.sub)
-
-##add normalized predictor by colony
-counts.m8.sub$pred.norm<-rep(NA, nrow(counts.m8.sub))
-for (j in 1:length(unique(counts.m8.sub$Colony))) {
-  colony.temp<-unique(counts.m8.sub$Colony)[j]
-  dat.temp<-subset(counts.m8.sub, Colony==colony.temp)
-  range.min<-min(dat.temp$Count, na.rm=T)
-  range.max<-max(dat.temp$Count, na.rm=T)
-  norm.temp<-normalize(dat.temp$pred, range=c(range.min, range.max), method="range")
-  counts.m8.sub$pred.norm[which(counts.m8.sub$Colony==colony.temp)]<-norm.temp
-}
 
 ##GET REGIONAL PREDICTIONS
 ##WEIGHT THE predictions BY POPULATION SIZE (and variance)
@@ -689,7 +696,9 @@ min.year<-min.year$min.year
 ##TABLE OF PERCENT CHANGE
 Regions<-as.character(unique(regional.pred$Region))
 dur<-c(str_c(min.year, "-2003"), rep("2003-2017",length(Regions)), str_c(min.year, "-2017"))
-change.dat<-data.frame(Region=rep(Regions,3), Years=dur, start=c(min.year, rep(2003, length(Regions)), min.year), end=c(rep(2003, length(Regions)), rep(2017, length(Regions)*2)), percent.change=NA, percent.change.rep=NA, upper95=NA, lower95=NA)
+change.dat<-data.frame(Region=rep(Regions,3), Years=dur, start=c(min.year, rep(2003, length(Regions)), min.year), end=c(rep(2003, length(Regions)), rep(2017, length(Regions)*2)), percent.change=NA, percent.change.rep=NA, lower95=NA, upper95=NA)
+
+per.change.func<-function(x,y) {ifelse(y>x & ((y-x)/x)<0,-round((y-x)/x*100,2), ifelse(y<x & ((y-x)/x)>0,-round((y-x)/x*100,2),round((y-x)/x*100,2)))}
 
 for (j in 1:nrow(change.dat)) {
   region.temp<-as.character(change.dat$Region[j])
@@ -698,10 +707,13 @@ for (j in 1:nrow(change.dat)) {
   
   initial.temp<-subset(regional.pred, as.character(Region)==region.temp & Year==start.year.temp)
   final.temp<-subset(regional.pred, as.character(Region)==region.temp & Year==end.year.temp)
-  change.dat$percent.change[j]<-round((final.temp$pred.regional-initial.temp$pred.regional)/initial.temp$pred.regional*100,2)
+  #change.dat$percent.change[j]<-round((final.temp$pred.regional-initial.temp$pred.regional)/initial.temp$pred.regional*100,2)
   
   ##take care of issue with negative values
-  if (final.temp$pred.regional>initial.temp$pred.regional & change.dat$percent.change[j] <0) {change.dat$percent.change[j]<-change.dat$percent.change[j]*-1}
+  #if (final.temp$pred.regional>initial.temp$pred.regional & change.dat$percent.change[j] <0) {change.dat$percent.change[j]<-change.dat$percent.change[j]*-1}
+  
+  ##use function
+  change.dat$percent.change[j]<-per.change.func(initial.temp$pred.regional, final.temp$pred.regional)
   
   #change.dat$upper95[j]<-round((final.temp$pred.regional-initial.temp$pred.regional)/initial.temp$pred.regional*100,2)
   
@@ -709,15 +721,31 @@ for (j in 1:nrow(change.dat)) {
   initial.rep<-as.numeric(subset(regional.pred.rep, Region==region.temp & Year==start.year.temp, select= -c(Year, Region,total,pred.regional)))
   final.rep<-as.numeric(subset(regional.pred.rep, Region==region.temp & Year==end.year.temp, select= -c(Year, Region,total,pred.regional)))
   
-  percent.change.rep<-round((final.rep-initial.rep)/initial.rep*100,2)
+  #percent.change.rep<-round((final.rep-initial.rep)/initial.rep*100,2)
   ##take care of issue with negative values
-  percent.change.rep[which(final.rep>initial.rep & percent.change.rep<0)]<-percent.change.rep[which(final.rep>initial.rep & percent.change.rep<0)]*-1
+  #percent.change.rep[which(final.rep>initial.rep & percent.change.rep<0)]<-percent.change.rep[which(final.rep>initial.rep & percent.change.rep<0)]*-1
+  
+  ##use percent change function
+  percent.change.rep<-per.change.func(initial.rep, final.rep)
+  
   mean.change<-round(mean(percent.change.rep, na.rm = T),2)
+  med.change<-round(median(percent.change.rep, na.rm = T),2)
   sd.change<-round(sd(percent.change.rep, na.rm=T),2)
   
-  change.dat$percent.change.rep[j]<-mean.change
-  change.dat$upper95[j]<-mean.change + round(1.96*sd.change/sqrt(length(percent.change.rep)),2)
+  change.dat$percent.change.rep[j]<-med.change
   change.dat$lower95[j]<-mean.change - round(1.96*sd.change/sqrt(length(percent.change.rep)),2)
+  change.dat$upper95[j]<-mean.change + round(1.96*sd.change/sqrt(length(percent.change.rep)),2)
+  
+  ##instead, order the values and use the actual values for the CI
+  rep.ord<-percent.change.rep[order(percent.change.rep)]
+  l95.temp<-rep.ord[round(0.025*length(percent.change.rep),0)]
+  u95.temp<-rep.ord[round(0.975*length(percent.change.rep),0)]
+  
+  ##overwrite upper and lower CI
+  change.dat$lower95[j]<-l95.temp
+  change.dat$upper95[j]<-u95.temp
+  
+  hist(percent.change.rep); abline(v=change.dat$percent.change[j])
 }
 
 change.dat<-change.dat[order(change.dat$Region),]
@@ -764,22 +792,23 @@ for (j in 1:length(unique(regional.pred$Region))) {
   ##plot trends by region
   data.plot.region<-subset(regional.pred, Region==region.temp & Year >= min.year[j] & Year <= max(data.plot$Year))
   range<-c(min(data.plot.region$total, na.rm=T), max(data.plot.region$total, na.rm=T))
-  #range.pred<-round(c(min(data.plot.region$pred.regional, na.rm=T), max(data.plot.region$pred.regional, na.rm=T)),0)
+  range.pred<-round(c(min(data.plot.region$pred.regional, na.rm=T), max(data.plot.region$pred.regional, na.rm=T)),0)
   range.pred<-round(c(min(data.plot.region$r.pred.mean-data.plot.region$r.pred.sd, na.rm=T), max(data.plot.region$r.pred.mean+data.plot.region$r.pred.sd, na.rm=T)),1) ##switch to mean from replicated
   
   fig <- ggplot(data = data.plot.region, aes(x=Year))
   fig <- fig + geom_path(aes(y=r.pred.mean))
-  #fig <- fig + geom_path(aes(y=r.pred.mean+r.pred.sd), lty="dashed")
-  #fig <- fig + geom_path(aes(y=r.pred.mean-r.pred.sd), lty="dashed")
+  fig <- fig + geom_path(aes(y=pred.regional), color="blue")
+  fig <- fig + geom_path(aes(y=r.pred.mean+r.pred.sd), lty="dashed")
+  fig <- fig + geom_path(aes(y=r.pred.mean-r.pred.sd), lty="dashed")
   fig <- fig + ylab("Regional trend")
-  #fig <- fig + geom_point(aes(y=normalize(x = total, range=range.pred, method="range")))
-  #fig <- fig + scale_y_continuous(breaks=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), sec.axis = sec_axis(~ ., name = "Total regional count", breaks = seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels = round(seq(range[1], range[2], (range[2]-range[1])/10), 0)))
-  fig <- fig + scale_y_continuous(breaks= seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10))
+  fig <- fig + geom_point(aes(y=normalize(x = total, range=range.pred, method="range")))
+  fig <- fig + scale_y_continuous(breaks=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), sec.axis = sec_axis(~ ., name = "Total regional count", breaks = seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels = round(seq(range[1], range[2], (range[2]-range[1])/10), 0)))
+  #fig <- fig + scale_y_continuous(breaks= seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10))
   fig <- fig + ggtitle(region.temp)
   fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 2), labels=seq(1985, 2017, 2)) + theme(axis.text.x = element_text(angle = 45, hjust=1))
   fig
   
-  #png(filename = str_c("fig.",region.temp, ".gam.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
+  png(filename = str_c("fig.",region.temp, ".error.gam.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
   
   #if (region.temp=="North Bay") {
   #  range.pred<-round(c(min(data.plot.region$pred.regional), max(data.plot.region$pred.regional)),1)
@@ -808,7 +837,7 @@ for (j in 1:length(unique(regional.pred$Region))) {
 ##plot as facets
 fig <- ggplot(dat.plot, aes(x=Year, y=pred.regional))
 fig <- fig + geom_path(size=1.1)
-#fig <- fig + geom_path(aes(y=r.pred.mean+r.pred.sd)) + geom_path(aes(y=r.pred.mean-r.pred.sd)) ##add error
+fig <- fig + geom_path(aes(y=r.pred.mean+r.pred.sd), lty="dashed") + geom_path(aes(y=r.pred.mean-r.pred.sd), lty="dashed") ##add error
 fig <- fig + facet_wrap(~Region)
 fig <- fig + theme_classic() 
 fig <- fig + ylab(label = "Trend")
@@ -823,12 +852,14 @@ png(filename = str_c("fig.regional.trends.facet.png"), units="in", width=6.5, he
 ##plot with free scales
 fig <- ggplot(dat.plot, aes(x=Year, y=pred.regional))
 fig <- fig + geom_path(size=1.1)
+fig <- fig + geom_path(aes(y=r.pred.mean+r.pred.sd), lty="dashed") + geom_path(aes(y=r.pred.mean-r.pred.sd), lty="dashed") ##add error
 fig <- fig + facet_wrap(~Region, scale="free_y")
 fig <- fig + theme_classic() 
 fig <- fig + ylab(label = "Trend")
 fig <- fig + scale_x_continuous(breaks=seq(1980, 2017, 5), limits = c(1982,2017))
 fig <- fig + theme(axis.text.x = element_text(angle = 45, hjust=1))
-fig <- fig + scale_y_continuous(breaks= round(seq(min(dat.plot$pred.regional),max(dat.plot$pred.regional),max(dat.plot$pred.regional)/10),0))
+#fig <- fig + scale_y_continuous(breaks= round(seq(min(dat.plot$pred.regional),max(dat.plot$pred.regional),max(dat.plot$pred.regional)/10),0))
+fig <- fig + scale_y_continuous(breaks = function(x) round(seq(from = x[1],to = x[2],by = (x[2]-x[1])/10),2))
 fig <- fig + theme(strip.background = element_rect(colour = "white", fill = "white"))
 fig
 
@@ -977,14 +1008,16 @@ for (j in 1:nrow(sf.pred)) {
 range.pred<-round(c(min(sf.pred$pred.sf), max(sf.pred$pred.sf)),1)
 range<-c(min(sf.pred$total), max(sf.pred$total))
 fig <- ggplot(data = sf.pred, aes(x=Year))
-fig <- fig + geom_path(aes(y = pred.sf))
-fig <- fig + geom_point(aes(y=normalize(total, range=range.pred, method="range")))
-#fig <- fig + geom_path(aes(y = sf.pred.mean))
-#fig <- fig + geom_path(aes(y = sf.pred.mean + sf.pred.sd), lty="dashed")
-#fig <- fig + geom_path(aes(y = sf.pred.mean - sf.pred.sd), lty="dashed")
-fig <- fig + ylab("SF Bay trend")
-fig <- fig + scale_y_continuous(breaks=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), sec.axis = sec_axis(~ ., name = "Total regional count", breaks = seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels = round(seq(range[1], range[2], (range[2]-range[1])/10), 0)))
+#fig <- fig + geom_path(aes(y = pred.sf))
+#fig <- fig + geom_point(aes(y=normalize(total, range=range.pred, method="range")))
+fig <- fig + geom_path(aes(y = sf.pred.mean), size = 1.1)
+fig <- fig + geom_path(aes(y = sf.pred.mean + sf.pred.sd), lty="dashed")
+fig <- fig + geom_path(aes(y = sf.pred.mean - sf.pred.sd), lty="dashed")
+fig <- fig + ylab("Trend")
+fig <- fig + theme_classic()
+#fig <- fig + scale_y_continuous(breaks=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), sec.axis = sec_axis(~ ., name = "Total regional count", breaks = seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels = round(seq(range[1], range[2], (range[2]-range[1])/10), 0)))
 fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 2), labels=seq(1985, 2017, 2)) + theme(axis.text.x = element_text(angle = 45, hjust=1))
+fig <- fig + scale_y_continuous(breaks = function(x) round(seq(from = x[1], to = x[2], by = (x[2]-x[1])/10),2))
 fig
 
 png(filename = str_c("fig.SF.trend.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()

@@ -46,7 +46,7 @@ I calcuated each annual regional trend estimate (mean and standard deviation) by
 
 sd = se * sqrt(edf+1)
 
-I then calculated the annual regional trend estimate for each of these replicates. I assumed that the regional trend estimate in a given year is equal to the sum of the estimated colony trends. The estimated colony trends were weighted by relative colony size (mean colony size divided by the sum of mean colony sizes in the region) and the relative error of the estimate (standard error of the estimate at a given colony divided by the sum of the standard errors for all colonies in the region).
+I then calculated the annual regional trend estimate for each of these replicates. I assumed that the regional trend estimate in a given year is equal to the sum of the estimated colony trends. I limited the colonies included in the regional trend estimate to those with a maximum count of no less than 25 nests. Colonies included comprise: `r as.character(large.sites)`. The estimated colony trends were weighted by relative colony size (mean colony size divided by the sum of mean colony sizes in the region) and the relative error of the estimate (standard error of the estimate at a given colony divided by the sum of the standard errors for all colonies in the region).
 
 The regional estimate for each year is thus represented by the mean and standard deviation of these 10,000 replicate regional estimates, and encompasses the error in each of the colony trend estimates.
 
