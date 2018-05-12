@@ -378,7 +378,8 @@ fig3d
 ##LINEAR MODELS WITH TIME BREAKS
 
 ##SUBSET COUNTS TO BIG SITES
-large.sites<-counts %>% group_by(Region, Colony) %>% summarise(max.count=max(Count), mean.count=mean(Count)) %>% data.frame() %>% subset(subset = max.count>25)
+large.sites<-counts %>% group_by(Region, Colony) %>% summarise(max.count=max(Count), mean.count=mean(Count), n=length(Count)) %>% data.frame() %>% subset(subset = max.count>=10 & n>=10)
+as.character(sort(large.sites$Colony))
 large.sites<-large.sites$Colony
 counts.sub<-subset(counts, Colony %in% large.sites)
 
@@ -459,7 +460,7 @@ model.fit$deviance.explained<-round(c(summary(M0)$dev.expl, summary(M1)$dev.expl
 model.fit<-subset(model.fit, select=c(Model, df, AIC, UBRE, deviance.explained))
 
 ##SELECT MODEL TO PLOT
-model.plot<-M3
+model.plot<-M1
 
 ##plot model M8
 #P8<-predict(M8, se.fit = T)
@@ -535,9 +536,10 @@ model.plot<-M3
 ##https://stat.ethz.ch/pipermail/r-help/2011-April/275632.html
 
 ##plot sum of site counts for a given region
-new.dat<-table(counts$Year, as.character(counts$Colony)) %>% data.frame()
-colnames(new.dat)<-c("Year", "Colony", "Freq")
-new.dat<-dplyr::left_join(new.dat[,1:2], y=subset(counts, select=c(Region,Colony)), by = c("Colony","Colony"))
+#new.dat<-table(counts$Year, as.character(counts$Colony)) %>% data.frame()
+#colnames(new.dat)<-c("Year", "Colony", "Freq")
+new.dat<-data.frame(Year=rep(min(counts$Year):max(counts$Year), length(unique(counts$Colony))), Colony=rep(unique(counts$Colony), length(min(counts$Year):max(counts$Year)))%>% sort())
+new.dat<-dplyr::left_join(new.dat, y=subset(counts, select=c(Region,Colony)), by = c("Colony","Colony"))
 new.dat<-unique(new.dat)
 new.dat<-subset(new.dat, Region!="")
 new.dat$Survey.type<-as.factor(rep("Ground", nrow(new.dat)))
@@ -707,24 +709,14 @@ for (j in 1:nrow(change.dat)) {
   
   initial.temp<-subset(regional.pred, as.character(Region)==region.temp & Year==start.year.temp)
   final.temp<-subset(regional.pred, as.character(Region)==region.temp & Year==end.year.temp)
-  #change.dat$percent.change[j]<-round((final.temp$pred.regional-initial.temp$pred.regional)/initial.temp$pred.regional*100,2)
-  
-  ##take care of issue with negative values
-  #if (final.temp$pred.regional>initial.temp$pred.regional & change.dat$percent.change[j] <0) {change.dat$percent.change[j]<-change.dat$percent.change[j]*-1}
   
   ##use function
   change.dat$percent.change[j]<-per.change.func(initial.temp$pred.regional, final.temp$pred.regional)
   
-  #change.dat$upper95[j]<-round((final.temp$pred.regional-initial.temp$pred.regional)/initial.temp$pred.regional*100,2)
-  
-  ##alternatively, get distribution of % change and take mean and 95% CI
+  ##get distribution of % change and take mean and 95% CI
   initial.rep<-as.numeric(subset(regional.pred.rep, Region==region.temp & Year==start.year.temp, select= -c(Year, Region,total,pred.regional)))
   final.rep<-as.numeric(subset(regional.pred.rep, Region==region.temp & Year==end.year.temp, select= -c(Year, Region,total,pred.regional)))
-  
-  #percent.change.rep<-round((final.rep-initial.rep)/initial.rep*100,2)
-  ##take care of issue with negative values
-  #percent.change.rep[which(final.rep>initial.rep & percent.change.rep<0)]<-percent.change.rep[which(final.rep>initial.rep & percent.change.rep<0)]*-1
-  
+
   ##use percent change function
   percent.change.rep<-per.change.func(initial.rep, final.rep)
   
@@ -733,23 +725,30 @@ for (j in 1:nrow(change.dat)) {
   sd.change<-round(sd(percent.change.rep, na.rm=T),2)
   
   change.dat$percent.change.rep[j]<-med.change
-  change.dat$lower95[j]<-mean.change - round(1.96*sd.change/sqrt(length(percent.change.rep)),2)
-  change.dat$upper95[j]<-mean.change + round(1.96*sd.change/sqrt(length(percent.change.rep)),2)
   
-  ##instead, order the values and use the actual values for the CI
+  ##calc confidence intervals, assuming data are normally distributed (they are not)
+  #change.dat$lower95[j]<-mean.change - round(1.96*sd.change/sqrt(length(percent.change.rep)),2)
+  #change.dat$upper95[j]<-mean.change + round(1.96*sd.change/sqrt(length(percent.change.rep)),2)
+  
+  ##order the values and use the actual values for the CI
   rep.ord<-percent.change.rep[order(percent.change.rep)]
   l95.temp<-rep.ord[round(0.025*length(percent.change.rep),0)]
   u95.temp<-rep.ord[round(0.975*length(percent.change.rep),0)]
   
-  ##overwrite upper and lower CI
+  ##assign upper and lower CI
   change.dat$lower95[j]<-l95.temp
   change.dat$upper95[j]<-u95.temp
   
-  hist(percent.change.rep); abline(v=change.dat$percent.change[j])
+  #hist(percent.change.rep); abline(v=change.dat$percent.change[j])
+  ##ADD PERCENT CHANGE IN RAW COUNTS FITTED TO LOESS
+  #raw.loess<-loess(formula = total~Year, data = subset(regional.pred, Region==region.temp))
+  
+  #raw.start<-predict(object = raw.loess, newdata = data.frame(Year=start.year.temp))
+  #raw.end<-predict(object = raw.loess, newdata = data.frame(Year=end.year.temp))
+  #change.dat$raw.change[j]<-per.change.func(raw.start, raw.end)
 }
 
 change.dat<-change.dat[order(change.dat$Region),]
-change.dat<-subset(change.dat, select=-c(start, end))
 
 ##plot trends for each colony
 for (j in 1:length(unique(regional.pred$Region))) {
@@ -896,9 +895,10 @@ fig <- fig + xlab("Count date (i.e. day of year)")
 fig <- fig + theme_classic()
 fig <- fig + scale_x_continuous(breaks=seq(0,300, 10))
 fig <- fig + scale_y_continuous(breaks=seq(0,6,0.25))
+fig <- fig + theme(axis.text.x = element_text(angle = 45, hjust=1))
 fig
 
-png(filename = str_c("fig.day.effect.png"), units="in", width=5, height=5,  res=200);print(fig); dev.off()
+png(filename = str_c("fig.day.effect.png"), units="in", width=4, height=3.5,  res=200);print(fig); dev.off()
 
 ##effect of count date on counts
 #plot(Count~day, data=counts); abline(a= coefficients(lm(Count~day, data=counts))[1], b= coefficients(lm(Count~day, data=counts))[2])
@@ -925,11 +925,11 @@ fig <- fig + geom_errorbar(aes(ymin=pred-pred.se, ymax=pred+pred.se, width=0.25)
 fig <- fig + ylab("Predicted trend value")
 fig <- fig + xlab("Survey type")
 fig <- fig + theme_classic()
-fig <- fig + scale_y_continuous(limits = c(min(pred-pred.se-0.5), max(pred+pred.se+0.5)), breaks = seq(1,10, 0.25))
-fig <- fig + theme(text = element_text(size=16))
+fig <- fig #+ scale_y_continuous(breaks = seq(1,10, 0.25))
+fig <- fig + theme(text = element_text(size=14))
 fig
 
-png(filename = str_c("fig.type.effect.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
+png(filename = str_c("fig.type.effect.png"), units="in", width=4, height=3.5,  res=200);print(fig); dev.off()
 
 ##plot effect of survey type
 data.temp<-subset(counts.raw, select=c(Colony, Year, Count, Survey.type), subset= Colony!="South Farallon Islands")
@@ -964,7 +964,9 @@ counts.sf$error.weight<-out[,2]
 counts.sf %>% group_by(Year) %>% summarise(sum(error.weight))
 
 ###GET SF TREND
-sf.pred<-counts.sf %>% group_by(Year) %>% summarise(total=sum(Count, na.rm=T), pred.sf=sum(pred*weight*error.weight)) %>% data.frame()
+sf.pred<-counts.sf %>% group_by(Year) %>% summarise(total=sum(Count, na.rm=T), pred.regional=sum(pred*weight*error.weight)) %>% data.frame()
+sf.pred$Region<-"San Francisco Bay"
+sf.pred<-subset(sf.pred, select=c(Year, Region, total, pred.regional))
 
 ###CALC SF TREND WITH ERROR
 edf.colony<-subset(model.plot$edf, str_detect(names(model.plot$edf), pattern="Colony"))
@@ -982,17 +984,24 @@ for (j in 1:ncol(pred.rep)) {
   counts.temp<-counts.sf
   counts.temp$pred<-pred.rep[,j] ##replace prediction with replicate prediction
   sf.pred.temp<-counts.temp %>% group_by(Year) %>% summarise(pred.sf=sum(pred*weight*error.weight)) %>% data.frame()
-  sf.pred.rep<-cbind(sf.pred.rep, pred.sf.rep=sf.pred.temp$pred.sf)
+  sf.pred.rep<-cbind(sf.pred.rep, r.pred.rep=sf.pred.temp$pred.sf)
 }
 
 ##get mean regional prediction and CI
-sf.pred.mean<-subset(sf.pred.rep, select=str_detect(names(sf.pred.rep), pattern="pred.sf.rep")) %>% apply(MARGIN = 1, FUN = mean) %>% as.numeric() ##take only replicates
-sf.pred.sd<-subset(sf.pred.rep, select=str_detect(names(sf.pred.rep), pattern="pred.sf.rep")) %>% apply(MARGIN = 1, FUN = sd) %>% as.numeric()
+sf.pred.mean<-subset(sf.pred.rep, select=str_detect(names(sf.pred.rep), pattern="r.pred.rep")) %>% apply(MARGIN = 1, FUN = mean) %>% as.numeric() ##take only replicates
+sf.pred.sd<-subset(sf.pred.rep, select=str_detect(names(sf.pred.rep), pattern="r.pred.rep")) %>% apply(MARGIN = 1, FUN = sd) %>% as.numeric()
 sf.pred.lower<-sf.pred.mean - 1.96*sf.pred.sd/sqrt(rep)
 sf.pred.upper<-sf.pred.mean + 1.96*sf.pred.sd/sqrt(rep)
 
+##instead, order the values and use the actual values for the CI
+sf.pred.med<-subset(sf.pred.rep, select=str_detect(names(sf.pred.rep), pattern="r.pred.rep")) %>% apply(MARGIN = 1, FUN = median) %>% as.numeric()
+sf.pred.ord<-subset(sf.pred.rep, select=str_detect(names(sf.pred.rep), pattern="r.pred.rep")) %>% apply(MARGIN = 1, FUN = sort) 
+sf.pred.lower<-sf.pred.ord[round(0.025*(ncol(sf.pred.rep)-3),0),] %>% as.numeric()
+sf.pred.upper<-sf.pred.ord[round(0.975*(ncol(sf.pred.rep)-3),0),] %>% as.numeric()
+
 sf.pred$sf.pred.mean<-sf.pred.mean
 sf.pred$sf.pred.sd<-sf.pred.sd
+sf.pred$sf.pred.med<-sf.pred.med
 sf.pred$sf.ci.lower<-sf.pred.lower
 sf.pred$sf.ci.upper<-sf.pred.upper
 
@@ -1010,9 +1019,9 @@ range<-c(min(sf.pred$total), max(sf.pred$total))
 fig <- ggplot(data = sf.pred, aes(x=Year))
 #fig <- fig + geom_path(aes(y = pred.sf))
 #fig <- fig + geom_point(aes(y=normalize(total, range=range.pred, method="range")))
-fig <- fig + geom_path(aes(y = sf.pred.mean), size = 1.1)
-fig <- fig + geom_path(aes(y = sf.pred.mean + sf.pred.sd), lty="dashed")
-fig <- fig + geom_path(aes(y = sf.pred.mean - sf.pred.sd), lty="dashed")
+fig <- fig + geom_path(aes(y = sf.pred.med), size = 1.1)
+fig <- fig + geom_path(aes(y = sf.ci.lower), lty="dashed")
+fig <- fig + geom_path(aes(y = sf.ci.upper), lty="dashed")
 fig <- fig + ylab("Trend")
 fig <- fig + theme_classic()
 #fig <- fig + scale_y_continuous(breaks=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), sec.axis = sec_axis(~ ., name = "Total regional count", breaks = seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels = round(seq(range[1], range[2], (range[2]-range[1])/10), 0)))
@@ -1020,7 +1029,36 @@ fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 2), labels=seq(1985, 20
 fig <- fig + scale_y_continuous(breaks = function(x) round(seq(from = x[1], to = x[2], by = (x[2]-x[1])/10),2))
 fig
 
-png(filename = str_c("fig.SF.trend.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
+png(filename = str_c("fig.SF.trend.png"), units="in", width=4, height=3.5,  res=200);print(fig); dev.off()
+
+##add to percent change table
+change.sf<-data.frame(Region=rep("San Francisco Bay", 3), Years=NA, start=c(min(sf.pred$Year), 2003, min(sf.pred$Year)), end=c(2003, 2017, 2017), percent.change=NA, percent.change.rep=NA, lower95=NA, upper95=NA)
+change.sf$Years<-str_c(change.sf$start, "-", change.sf$end)
+
+for (j in 1:nrow(change.sf)) {
+  initial.rep<-subset(sf.pred.rep, Year==change.sf$start[j], select= str_detect(string = names(sf.pred.rep), pattern = "rep")) %>% as.numeric()
+  final.rep<-subset(sf.pred.rep, Year==change.sf$end[j], select= str_detect(string = names(sf.pred.rep), pattern = "rep")) %>% as.numeric()
+  
+  ##use percent change function
+  percent.change.rep<-per.change.func(initial.rep, final.rep)
+  
+  med.change<-round(median(percent.change.rep, na.rm = T),2)
+  change.sf$percent.change.rep[j]<-med.change
+  
+  ##instead, order the values and use the actual values for the CI
+  rep.ord<-percent.change.rep[order(percent.change.rep)]
+  change.sf$lower95[j]<-rep.ord[round(0.025*length(percent.change.rep),0)]
+  change.sf$upper95[j]<-rep.ord[round(0.975*length(percent.change.rep),0)]
+  
+  change.sf$percent.change[j]<-per.change.func(subset(sf.pred.rep, Year==change.sf$start[j])$pred.regional, subset(sf.pred.rep, Year==change.sf$end[j])$pred.regional)
+  
+  #hist(percent.change.rep); abline(v=change.sf$percent.change.rep[j]); abline(v=change.sf$lower95[j], lty="dashed"); abline(v=change.sf$upper95[j], lty="dashed")
+  
+}
+
+change.tab<-rbind(change.dat, change.sf)
+change.tab$"Percent change (95% CI)"<-str_c(round(change.tab$percent.change.rep,0), "% (", round(change.tab$lower95,0), ", ", round(change.tab$upper95,0), ")")
+change.tab<-subset(change.tab, select=c(Region, Years, `Percent change (95% CI)`))
 
 ##calculate % smaller
 #type.model<-lm(Ground~Aerial, data=data.temp)
@@ -1029,3 +1067,52 @@ png(filename = str_c("fig.SF.trend.png"), units="in", width=6.5, height=6.5,  re
 #(200-type.fun(200))/(200+type.fun(200))*100
 
 #source("DCCO_poptrend_code_07Mar2018.R")
+
+##TABLE OF PERCENT ANNUAL CHANGE
+per.change.func<-function(x,y) {ifelse(y>x & ((y-x)/x)<0,-round((y-x)/x*100,2), ifelse(y<x & ((y-x)/x)>0,-round((y-x)/x*100,2),round((y-x)/x*100,2)))}
+
+##combine predictions for regions and sf bay
+regional.sf.pred.rep<-rbind(regional.pred.rep, sf.pred.rep)
+
+##order by region and year
+regional.sf.pred.rep<-regional.sf.pred.rep[order(regional.sf.pred.rep$Region, regional.sf.pred.rep$Year),]
+
+##calc percent annual change for one column
+#change.annual<-per.change.func(lag(regional.sf.pred.rep$pred.regional,1), regional.sf.pred.rep$pred.regional)
+
+##calc percent annual change for all columns
+reps<-subset(regional.sf.pred.rep, select=str_detect(names(regional.sf.pred.rep), "rep"))
+change.annual.rep<-apply(X = reps, MARGIN = 2, FUN = function(x) {per.change.func(lag(x,1), x)})
+
+##replace values with NA for first year for each region
+change.annual.rep[which(regional.sf.pred.rep$Year==1984),]<-NA
+
+##calc mean annual change
+mean.annual.change<-round(as.numeric(apply(X = change.annual.rep, MARGIN = 1, FUN = mean)),2)
+u95<-round(as.numeric(apply(X = change.annual.rep, MARGIN = 1, FUN = function(x){sort(x)[length(x)*0.975]})),2)
+l95<-round(as.numeric(apply(X = change.annual.rep, MARGIN = 1, FUN = function(x){sort(x)[length(x)*0.025]})),2)
+
+##combine labels with percent annual change values
+change.annual<-cbind(subset(regional.sf.pred.rep, select=c(Year, Region)), per.change=mean.annual.change, u95=u95, l95=l95)
+change.annual.rep<-cbind(change.annual, change.annual.rep)
+
+##create change table from mean annual values
+change.tab.annual<-data.frame(rbind(subset(change.dat, select=c(Region, Years, start, end)), subset(change.sf, select=c(Region, Years, start, end))), per.change=NA, l95=NA, u95=NA)
+
+for (j in 1:nrow(change.tab.annual)) {
+  region.temp<-change.tab.annual$Region[j]
+  start.temp<-change.tab.annual$start[j]
+  end.temp<-change.tab.annual$end[j]
+  
+  dat.temp<-subset(change.annual.rep, Region==as.character(region.temp) & Year>=start.temp & Year <= end.temp, select=str_detect(names(change.annual.rep), "rep"))
+  mean.rep.temp<-apply(dat.temp, MARGIN = 2, FUN = mean, na.rm=T)
+  change.tab.annual$per.change[j]<-round(median(mean.rep.temp),0)
+  change.tab.annual$u95[j]<-round(sort(mean.rep.temp)[length(mean.rep.temp)*0.975],0)
+  change.tab.annual$l95[j]<-round(sort(mean.rep.temp)[length(mean.rep.temp)*0.025],0)
+}
+
+change.tab.annual$`Mean annual change (95% CI)`<-str_c(change.tab.annual$per.change, "% (", change.tab.annual$l95, ", ", change.tab.annual$u95, ")")
+change.tab.annual<-subset(change.tab.annual, select=-c(start, end, per.change, l95, u95))
+
+change.tab.combo<-cbind(change.tab, subset(change.tab.annual, select=`Mean annual change (95% CI)`))
+change.tab.combo
