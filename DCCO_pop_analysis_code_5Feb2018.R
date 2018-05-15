@@ -1032,7 +1032,7 @@ fig
 png(filename = str_c("fig.SF.trend.png"), units="in", width=4, height=3.5,  res=200);print(fig); dev.off()
 
 ##add to percent change table
-change.sf<-data.frame(Region=rep("San Francisco Bay", 3), Years=NA, start=c(min(sf.pred$Year), 2003, min(sf.pred$Year)), end=c(2003, 2017, 2017), percent.change=NA, percent.change.rep=NA, lower95=NA, upper95=NA)
+change.sf<-data.frame(Region=rep("San Francisco Bay", 3), Years=NA, start=c(1990, 2003, 1990), end=c(2003, 2017, 2017), percent.change=NA, percent.change.rep=NA, lower95=NA, upper95=NA)
 change.sf$Years<-str_c(change.sf$start, "-", change.sf$end)
 
 for (j in 1:nrow(change.sf)) {
