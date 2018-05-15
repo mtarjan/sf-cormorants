@@ -111,7 +111,7 @@ knitr::kable(change.tab.combo, row.names = F)
 
 #Figures
 ```{r, echo=FALSE}
-knitr::include_graphics(path="C:/Users/max/Desktop/Tarjan/Science/GIS/DCCO_GIS/DCCO_sites_map_11Mar2018.png")
+knitr::include_graphics(path="C:/Users/max/Desktop/Tarjan/Science/GIS/DCCO_GIS/DCCO_sites_map_15May2018.png")
 
 figure.num<-figure.num+1
 ```

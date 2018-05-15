@@ -19,6 +19,19 @@ library(BBmisc) ##required for normalize function
 #counts<-read.csv("DCCO_counts_18Aug2017.csv")
 counts<-read.xls("C:/Users/max/Desktop/Tarjan/Science/DCCO_counts_04Apr2018.xlsx")
 
+##add zeros to the first years in counts
+counts.zero<-counts
+for (j in 1:length(unique(counts$Colony))) {
+  dat.temp<-subset(counts, Colony==unique(counts$Colony)[j])
+  min.yr.temp<-min(dat.temp$Year)
+  if(min.yr.temp==1984) {next}
+  yrs.temp<-1984:(min.yr.temp-1)
+  counts.zero<-rbind(counts.zero, data.frame(Colony=rep(dat.temp$Colony[1],length(yrs.temp)), Year=yrs.temp, Count=rep(0,length(yrs.temp)), Survey.Date=NA, Organization=NA, Survey.type=NA, lat=rep(dat.temp$lat[1], length(yrs.temp)), long=rep(dat.temp$long[1], length(yrs.temp)), Region=rep(dat.temp$Region[1], length(yrs.temp)), Count.type=rep("", length(yrs.temp)), Exclude.comments=rep("", length(yrs.temp)), Comments=NA, Incomplete.year=NA))
+}
+#counts.zero<-counts.zero[order(counts.zero$Colony,counts.zero$Year),]
+
+#counts<-counts.zero
+
 counts$Colony<-as.character(counts$Colony)
 translator <- c('Alviso Plant, Pond Nos. A9 and A10' = 'Alviso Ponds A9/A10', 
                 'Alviso Plant, Pond No. A18' = 'Alviso Pond A18',
@@ -148,7 +161,7 @@ fig3 <- fig3 + geom_smooth(method = "loess")
 fig3 <- fig3 + facet_wrap(~Region, strip.position="top", scales="free", ncol = 2) ##split up sites with facets; choose this option or the one below
 #fig2 <- fig2 + geom_bar(stat="identity", aes(fill=Region)) + scale_fill_manual(values=mycols, name="") ##stacked barplot with sites as the colors. can change the colors to region when have those assigned (but need to summarize data by region first)
 fig3 <- fig3 + ylab("Number of DCCO nests")
-fig3 <- fig3 + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0), limits=c(1985,2017))
+fig3 <- fig3 + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0), limits=c(1984,2017))
 fig3 <- fig3 + scale_y_continuous(breaks=seq(0, 2500, 100), expand=c(0,0), limits = c(0, NA))
 fig3 <- fig3 + theme_classic()
 fig3 <- fig3 + theme()
@@ -786,7 +799,7 @@ for (j in 1:length(unique(regional.pred$Region))) {
   fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 3), labels=seq(1985, 2017, 3)) + theme(axis.text.x = element_text(angle = 45, hjust=1))
   fig
   
-  #png(filename = str_c("fig.",region.temp, ".gam.colonies.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
+  png(filename = str_c("fig.",region.temp, ".gam.colonies.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
   
   ##plot trends by region
   data.plot.region<-subset(regional.pred, Region==region.temp & Year >= min.year[j] & Year <= max(data.plot$Year))
