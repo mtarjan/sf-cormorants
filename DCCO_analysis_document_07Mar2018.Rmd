@@ -26,7 +26,7 @@ This manuscript describes trends in DCCO populations in the San Francisco Bay Ar
 
 #Methods
 ##General Additive Mixed Models (GAMMs)
-Count data are frequently used to estimate population trends, but are subject to biases in data collection. Notably, raw counts are strongly affected by survey effort and survey dates. Our raw counts are likey subject to these effects. The North Bay and South Bay regions contain multiple (12+) DCCO nesting colonies, but not all sites were visited in each year. Site occupation also depends on day of the season. Birds arrive to breed in April, peak breeding occurs in June, and they depart in August. Nest counts increase and then decrease as the season progresses, so day of the season is an important covariate when inferring colony size. Other potential covariates are survey type (aerial, boat, or ground). To account for potential biases, we tested competing models that included measured covariates in our estimates of regional trends. Long-term population dynamics are frequently non-linear, so we used an approach that would allow for nonlinear trends.
+Count data are frequently used to estimate population trends, but are subject to biases in data collection. Notably, raw counts are strongly affected by survey effort and survey dates. Our raw counts are likey subject to these effects because not all sites in a region were counted in every year. Site occupation also depends on day of the season. Birds arrive to breed in April, peak breeding occurs in June, and they depart in August. Nest counts increase and then decrease as the season progresses, so day of the season is an important covariate when inferring colony size. Other potential covariates are survey type (aerial, boat, or ground). To account for potential biases, we tested competing models that included measured covariates in our estimates of regional trends. Long-term population dynamics are frequently non-linear, so we used an approach that would allow for nonlinear trends.
 
 General additive mixed models allow each colony to growth nonlinearly over time by including an interaction term between colony and year. Estimating the regional counts by summing colony counts and weighting those counts by estimated error corrects for years when certain colonies were not visited. This method also allows for additive terms to inform colony size, so we were able to test the effect of count date and survey type on colony counts.
 
@@ -46,7 +46,7 @@ We calcuated each annual regional trend estimate (mean and standard deviation) b
 
 <!-- \sigma = se \sqrt{(*d* + 1)} -->
 
-We then calculated the annual regional trend estimate for each of these replicates. We assumed that the regional trend estimate in a given year is equal to the sum of the estimated colony trends. We limited the colonies included in the regional trend estimate to those with a minimum of 10 nests and 10 years of count data. Colonies included comprise: `r as.character(large.sites)`. The estimated colony trends were weighted by relative colony size (mean colony size divided by the sum of mean colony sizes in the region) and the relative error of the estimate (standard error of the estimate at a given colony divided by the sum of the standard errors for all colonies in the region).
+We then calculated the annual regional trend estimate for each of these replicates. We assumed that the regional trend estimate in a given year is equal to the sum of the estimated colony trends. We limited the colonies included in the regional trend estimate to those with a minimum of 10 nests and 10 years of count data, namely: `r as.character(large.sites)`. The estimated colony trends were weighted by relative colony size (mean colony size divided by the sum of mean colony sizes in the region) and the relative error of the estimate (standard error of the estimate at a given colony divided by the sum of the standard errors for all colonies in the region).
 
 The regional estimate for each year is thus represented by the mean and standard deviation of these 10,000 replicate regional estimates, and encompasses the error in each of the colony trend estimates.
 
@@ -104,7 +104,7 @@ knitr::kable(model.fit)
 ```{r, echo=FALSE}
 table.num<-table.num+1
 ```
-Table `r table.num`. Percent change in each region across pre-bridge construction (pre-2003), post-bridge construction (2003-2017), and all years. Percent change values are followed by 95% confidence intervals in parentheses.
+Table `r table.num`. Percent change in each region across pre-bridge construction (pre-2003), during bridge construction (2003-2017), and all years. Percent change values are followed by 95% confidence intervals in parentheses.
 ```{r, echo=FALSE}
 knitr::kable(change.tab.combo, row.names = F)
 ```

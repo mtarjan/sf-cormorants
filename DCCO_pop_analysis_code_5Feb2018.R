@@ -28,7 +28,7 @@ for (j in 1:length(unique(counts$Colony))) {
   yrs.temp<-1984:(min.yr.temp-1)
   counts.zero<-rbind(counts.zero, data.frame(Colony=rep(dat.temp$Colony[1],length(yrs.temp)), Year=yrs.temp, Count=rep(0,length(yrs.temp)), Survey.Date=NA, Organization=NA, Survey.type=NA, lat=rep(dat.temp$lat[1], length(yrs.temp)), long=rep(dat.temp$long[1], length(yrs.temp)), Region=rep(dat.temp$Region[1], length(yrs.temp)), Count.type=rep("", length(yrs.temp)), Exclude.comments=rep("", length(yrs.temp)), Comments=NA, Incomplete.year=NA))
 }
-#counts.zero<-counts.zero[order(counts.zero$Colony,counts.zero$Year),]
+counts.zero<-counts.zero[order(counts.zero$Colony,counts.zero$Year),]
 
 #counts<-counts.zero
 
@@ -62,9 +62,9 @@ library(lubridate)
 counts$day<-yday(counts$Survey.Date)
 
 ##add time periods (pre v post bridge construction)
-counts$time.period<-counts$Year
-counts$time.period[which(counts$time.period<=2002)]<-"pre"
-counts$time.period[which(counts$time.period>2002 & counts$time.period != "pre")]<-"post"
+#counts$time.period<-counts$Year
+#counts$time.period[which(counts$time.period<=2002)]<-"pre"
+#counts$time.period[which(counts$time.period>2002 & counts$time.period != "pre")]<-"post"
 
 ##get data for years with nearly complete data only, given Phil's designations
 #counts.complete<-subset(counts, is.na(Incomplete.year))
@@ -117,9 +117,9 @@ for (j in 1:nrow(max.colony.counts)) {
 #regional.counts<-counts %>% group_by(Region, Year) %>% summarise(total=sum(Count)) %>% data.frame()
 regional.counts<-max.colony.counts %>% group_by(Region, Year) %>% summarise(total=sum(max.count)) %>% data.frame()
 
-regional.counts$time.period<-regional.counts$Year
-regional.counts$time.period[which(regional.counts$time.period<=2002)]<-"pre"
-regional.counts$time.period[which(regional.counts$time.period>2002 & regional.counts$time.period != "pre")]<-"post"
+#regional.counts$time.period<-regional.counts$Year
+#regional.counts$time.period[which(regional.counts$time.period<=2002)]<-"pre"
+#regional.counts$time.period[which(regional.counts$time.period>2002 & regional.counts$time.period != "pre")]<-"post"
 
 ##counts number of colonies tracked in each region
 n.colonies<-data.frame(table(counts$Region, counts$Year))
@@ -132,22 +132,22 @@ for (j in 1:nrow(regional.counts)) {
 }
 
 ##plot of nest counts by year and site
-fig2 <- ggplot(data = subset(regional.counts, subset = Region !=""), aes(x = Year, y=total, colour=as.factor(time.period), fill=as.factor(time.period)))
+#fig2 <- ggplot(data = subset(regional.counts, subset = Region !=""), aes(x = Year, y=total, colour=as.factor(time.period), fill=as.factor(time.period)))
 #fig2 <- fig2 + geom_bar(stat="identity")
-fig2 <- fig2 + geom_point(size=2, shape=21)
-fig2 <- fig2 + geom_smooth(method = "lm", aes(linetype = as.factor(time.period)), fill="darkgrey")
-fig2 <- fig2 + scale_color_manual(values= c("black", "black"), name = "Pre- or Post- \nBridge Construction") + scale_fill_manual(values= c("black", "white"), name = "Pre- or Post- \nBridge Construction")
-fig2 <- fig2 + scale_linetype_manual(values=c("solid", "twodash"), name = "Pre- or Post- \nBridge Construction")
-fig2 <- fig2 + facet_wrap(~Region, strip.position="top") ##split up sites with facets; choose this option or the one below
+#fig2 <- fig2 + geom_point(size=2, shape=21)
+#fig2 <- fig2 + geom_smooth(method = "lm", aes(linetype = as.factor(time.period)), fill="darkgrey")
+#fig2 <- fig2 + scale_color_manual(values= c("black", "black"), name = "Pre- or Post- \nBridge Construction") + scale_fill_manual(values= c("black", "white"), name = "Pre- or Post- \nBridge Construction")
+#fig2 <- fig2 + scale_linetype_manual(values=c("solid", "twodash"), name = "Pre- or Post- \nBridge Construction")
+#fig2 <- fig2 + facet_wrap(~Region, strip.position="top") ##split up sites with facets; choose this option or the one below
 #fig2 <- fig2 + geom_bar(stat="identity", aes(fill=Region)) + scale_fill_manual(values=mycols, name="") ##stacked barplot with sites as the colors. can change the colors to region when have those assigned (but need to summarize data by region first)
-fig2 <- fig2 + ylab("Number of DCCO nests")
-fig2 <- fig2 + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0))
-fig2 <- fig2 + scale_y_continuous(breaks=seq(0, 2500, 200), expand=c(0,0), limits = c(0, NA))
-fig2 <- fig2 + theme_bw()
-fig2 <- fig2 + theme(panel.spacing = unit(0.25, "in"))
-fig2 <- fig2 + theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
-fig2 <- fig2 + theme(axis.title.y = element_text(margin = margin(r=1, unit="line")))
-fig2
+#fig2 <- fig2 + ylab("Number of DCCO nests")
+#fig2 <- fig2 + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0))
+#fig2 <- fig2 + scale_y_continuous(breaks=seq(0, 2500, 200), expand=c(0,0), limits = c(0, NA))
+#fig2 <- fig2 + theme_bw()
+#fig2 <- fig2 + theme(panel.spacing = unit(0.25, "in"))
+#fig2 <- fig2 + theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
+#fig2 <- fig2 + theme(axis.title.y = element_text(margin = margin(r=1, unit="line")))
+#fig2
 
 #png(filename = "fig2.png", units="in", width=6*1.5, height=4*1.5,  res=200);fig2; dev.off()
 
@@ -176,44 +176,44 @@ png(filename = "fig3.png", units="in", width=6.5, height=6.5,  res=200);fig3; de
 
 ##FIGURE 3A
 ##loess on log(count)
-fig3a <- ggplot(data = subset(regional.counts, subset = Region !=""), aes(x = Year, y=log(total)))
-fig3a <- fig3a + geom_point(size=2)
-fig3a <- fig3a + geom_smooth(method = "loess")
-fig3a <- fig3a + facet_wrap(~Region, strip.position="top", scales="free") 
-fig3a <- fig3a + ylab("ln(Number of DCCO nests)")
-fig3a <- fig3a + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0), limits=c(1985,2017))
-#fig3 <- fig3 + scale_y_continuous(breaks=seq(0, 2500, 100), expand=c(0,0), limits = c(0, NA))
-fig3a <- fig3a + theme_classic()
-fig3a <- fig3a + theme()
-#fig3 <- fig3 + theme(panel.border = element_rect(color="black", fill=NA))
-fig3a <- fig3a + theme(panel.spacing = unit(0.25, "in"))
-fig3a <- fig3a + theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
-fig3a <- fig3a + theme(axis.title.y = element_text(margin = margin(r=1, unit="line")))
-fig3a <- fig3a + theme(strip.background = element_rect(fill=NULL, linetype = "blank"))
-fig3a
+#fig3a <- ggplot(data = subset(regional.counts, subset = Region !=""), aes(x = Year, y=log(total)))
+#fig3a <- fig3a + geom_point(size=2)
+#fig3a <- fig3a + geom_smooth(method = "loess")
+#fig3a <- fig3a + facet_wrap(~Region, strip.position="top", scales="free") 
+#fig3a <- fig3a + ylab("ln(Number of DCCO nests)")
+#fig3a <- fig3a + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0), limits=c(1985,2017))
+##fig3 <- fig3 + scale_y_continuous(breaks=seq(0, 2500, 100), expand=c(0,0), limits = c(0, NA))
+#fig3a <- fig3a + theme_classic()
+#fig3a <- fig3a + theme()
+##fig3 <- fig3 + theme(panel.border = element_rect(color="black", fill=NA))
+#fig3a <- fig3a + theme(panel.spacing = unit(0.25, "in"))
+#fig3a <- fig3a + theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
+#fig3a <- fig3a + theme(axis.title.y = element_text(margin = margin(r=1, unit="line")))
+#fig3a <- fig3a + theme(strip.background = element_rect(fill=NULL, linetype = "blank"))
+#fig3a
 
 ##find breaks according to loess on log(counts)
-out<-dim(0)
-for (j in 1:length(unique(regional.counts$Region))) {
-  dat.temp<-subset(regional.counts, Region==unique(regional.counts$Region)[j] & total >0)
-  loess.temp<-loess(formula = log(total) ~ Year, data = dat.temp)
-  predict.temp<-predict(loess.temp)
-  #curve.pts<-cbind(dat.temp$Year, predict.temp)
+#out<-dim(0)
+#for (j in 1:length(unique(regional.counts$Region))) {
+#  dat.temp<-subset(regional.counts, Region==unique(regional.counts$Region)[j] & total >0)
+#  loess.temp<-loess(formula = log(total) ~ Year, data = dat.temp)
+#  predict.temp<-predict(loess.temp)
+  ##curve.pts<-cbind(dat.temp$Year, predict.temp)
   
-  dy <- diff(predict.temp) 
+#  dy <- diff(predict.temp) 
   
-  cutoff<-dim(0)
-  for (i in 6:(length(dy)-5)) {
-    if (t.test(x=dy[i:(i-4)], y=dy[(i+1):(i+5)])$p.value<0.1) {
-      cutoff<-c(cutoff, dat.temp$Year[i])
-    }
-  }
-  cutoff<-round(median(cutoff),0)
-  #print(cutoff)
-  out<-rbind(out, c(as.character(unique(regional.counts$Region)[j]), cutoff))
-}
-cutoff<-data.frame(out)
-cutoff$X2<-as.numeric(as.character(cutoff$X2))
+#  cutoff<-dim(0)
+#  for (i in 6:(length(dy)-5)) {
+#    if (t.test(x=dy[i:(i-4)], y=dy[(i+1):(i+5)])$p.value<0.1) {
+#      cutoff<-c(cutoff, dat.temp$Year[i])
+#    }
+#  }
+#  cutoff<-round(median(cutoff),0)
+  ##print(cutoff)
+#  out<-rbind(out, c(as.character(unique(regional.counts$Region)[j]), cutoff))
+#}
+#cutoff<-data.frame(out)
+#cutoff$X2<-as.numeric(as.character(cutoff$X2))
 
 ##FIGURE 3B
 ##number of sites included in regional estimates each year (indicates survey effort??)
@@ -247,19 +247,19 @@ fig3c
 
 ## FIGURE 4
 ##plot change in dcco numbers for all sites minus bridge
-annual.counts<-subset(counts, Region !="" & Region !="Bridges") %>% group_by(Year) %>% summarise(total=sum(Count)) %>% data.frame()
-#annual.counts<-subset(counts, Region !="" ) %>% group_by(Year) %>% summarise(total=sum(Count)) %>% data.frame()
+#annual.counts<-subset(counts, Region !="" & Region !="Bridges") %>% group_by(Year) %>% summarise(total=sum(Count)) %>% data.frame()
+##annual.counts<-subset(counts, Region !="" ) %>% group_by(Year) %>% summarise(total=sum(Count)) %>% data.frame()
 
-fig4 <- ggplot(data = annual.counts, aes(x = Year, y=total))
-fig4 <- fig4 + geom_point(size=2)
-fig4 <- fig4 + geom_smooth(method = "loess")
-fig4 <- fig4 + ylab("Number of DCCO nests at non-bridge sites")
-fig4 <- fig4 + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0))
-fig4 <- fig4 + scale_y_continuous(breaks=seq(0, 5500, 200), expand=c(0,0), limits = c(0, NA))
-fig4 <- fig4 + theme_bw()
-fig4 <- fig4 + theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
-fig4 <- fig4 + theme(axis.title.y = element_text(margin = margin(r=1, unit="line")))
-fig4
+#fig4 <- ggplot(data = annual.counts, aes(x = Year, y=total))
+#fig4 <- fig4 + geom_point(size=2)
+#fig4 <- fig4 + geom_smooth(method = "loess")
+#fig4 <- fig4 + ylab("Number of DCCO nests at non-bridge sites")
+#fig4 <- fig4 + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0))
+#fig4 <- fig4 + scale_y_continuous(breaks=seq(0, 5500, 200), expand=c(0,0), limits = c(0, NA))
+#fig4 <- fig4 + theme_bw()
+#fig4 <- fig4 + theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
+#fig4 <- fig4 + theme(axis.title.y = element_text(margin = margin(r=1, unit="line")))
+#fig4
 
 #png(filename = "fig4.png", units="in", width=6*1.5, height=4*1.5,  res=200);fig4; dev.off()
 
@@ -267,28 +267,28 @@ fig4
 ##plot of change in dcco numbers (slope following bridge construction) with distance from bridge
 
 ##add mean distance to the two bridges
-bridge.dist<-as.matrix(dist(subset(counts, select = c("lat", "long")), method = "euclidean"))
-bb.dist<-bridge.dist[,which(counts$Colony=="S.F.-Oakland Bay Br. East")[1]]
-rb.dist<-bridge.dist[,which(counts$Colony=="Richmond-San Rafael Bridge")[1]]
-counts$bridge.dist<-apply(X = cbind(bb.dist, rb.dist), MARGIN = 1, FUN = mean)
+#bridge.dist<-as.matrix(dist(subset(counts, select = c("lat", "long")), method = "euclidean"))
+#bb.dist<-bridge.dist[,which(counts$Colony=="S.F.-Oakland Bay Br. East")[1]]
+#rb.dist<-bridge.dist[,which(counts$Colony=="Richmond-San Rafael Bridge")[1]]
+#counts$bridge.dist<-apply(X = cbind(bb.dist, rb.dist), MARGIN = 1, FUN = mean)
 
 ##growth rate of colony post 2002
-out<-data.frame(site = rep(NA, length(unique(counts$Colony))), Region = rep(NA, length(unique(counts$Colony))), bridge.dist = rep(NA, length(unique(counts$Colony))), slope = rep(NA, length(unique(counts$Colony))))
-for (j in 1:length(unique(counts$Colony))) {
-  row.temp<-subset(counts, subset= Colony == as.character(unique(counts$Colony)[j]))
-  site<-as.character(unique(counts$Colony)[j])
-  if (nrow(subset(counts, subset = Colony==site & Year >2002))>1) {
-    slope<-lm(formula = Count ~ Year, data = subset(counts, subset = Colony==site & Year >2002))$coefficients[2]
-    out$site[j]<-site
-    out$Region[j]<-as.character(row.temp$Region[1])
-    out$bridge.dist[j]<-row.temp$bridge.dist[1]
-    out$slope[j]<-slope
-  }
-}
+#out<-data.frame(site = rep(NA, length(unique(counts$Colony))), Region = rep(NA, length(unique(counts$Colony))), bridge.dist = rep(NA, length(unique(counts$Colony))), slope = rep(NA, length(unique(counts$Colony))))
+#for (j in 1:length(unique(counts$Colony))) {
+#  row.temp<-subset(counts, subset= Colony == as.character(unique(counts$Colony)[j]))
+#  site<-as.character(unique(counts$Colony)[j])
+#  if (nrow(subset(counts, subset = Colony==site & Year >2002))>1) {
+#    slope<-lm(formula = Count ~ Year, data = subset(counts, subset = Colony==site & Year >2002))$coefficients[2]
+#    out$site[j]<-site
+#    out$Region[j]<-as.character(row.temp$Region[1])
+#    out$bridge.dist[j]<-row.temp$bridge.dist[1]
+#    out$slope[j]<-slope
+#  }
+#}
 
-out<-out[-which(is.na(out$slope)),] ##exclude sites for which slope could not be calculated (too few sites)
+#out<-out[-which(is.na(out$slope)),] ##exclude sites for which slope could not be calculated (too few sites)
 
-ggplot(data=out, aes(x = Region, y = slope)) + geom_boxplot() + ylab("Change in DCCO counts 2002-2017")
+#ggplot(data=out, aes(x = Region, y = slope)) + geom_boxplot() + ylab("Change in DCCO counts 2002-2017")
 
 ##plot sites on a map
 #map1<-ggplot(data = counts, aes(x = UTM.Easting, y = UTM.Northing)) + geom_point(aes(size=nests))
@@ -298,30 +298,30 @@ ggplot(data=out, aes(x = Region, y = slope)) + geom_boxplot() + ylab("Change in 
 #par(mfrow=c(1,length(unique(counts$time.period))))
 
 ##LOAD PHIL'S REGIONAL COUNTS
-phil.data<-read.csv("C:/Users/max/Desktop/Tarjan/Science/DCCO/DCCO_regional_counts_Phil_12Jul2017.csv")
-phil.data<-tidyr::gather(phil.data, "Year", "Count", 2:ncol(phil.data)) ##rearrange data
-phil.data$Year<-as.numeric(str_sub(phil.data$Year, 2, 5)) ##format year (remove space)
-phil.data<-subset(phil.data, subset = Count!='NA')
-colnames(phil.data)<-c("Region", "Year", "total")
+#phil.data<-read.csv("C:/Users/max/Desktop/Tarjan/Science/DCCO/DCCO_regional_counts_Phil_12Jul2017.csv")
+#phil.data<-tidyr::gather(phil.data, "Year", "Count", 2:ncol(phil.data)) ##rearrange data
+#phil.data$Year<-as.numeric(str_sub(phil.data$Year, 2, 5)) ##format year (remove space)
+#phil.data<-subset(phil.data, subset = Count!='NA')
+#colnames(phil.data)<-c("Region", "Year", "total")
 
-#data<-read.csv("DCCO_regional_counts_Phil_12Jul2017.csv")
-#data.org<-data
-#data<-tidyr::gather(data, "Year", "Count", 2:ncol(data)) ##rearrange data
-#data$Year<-as.numeric(str_sub(data$Year, 2, 5)) ##format year (remove space)
-#data<-subset(data, subset = Count!='NA')
+##data<-read.csv("DCCO_regional_counts_Phil_12Jul2017.csv")
+##data.org<-data
+##data<-tidyr::gather(data, "Year", "Count", 2:ncol(data)) ##rearrange data
+##data$Year<-as.numeric(str_sub(data$Year, 2, 5)) ##format year (remove space)
+##data<-subset(data, subset = Count!='NA')
 
-fig3d <- ggplot(data = subset(phil.data, subset = Region !="NonBridge"), aes(x = Year, y=total))
-fig3d <- fig3d + geom_point(size=2)
-fig3d <- fig3d + geom_smooth(method = "loess")
-fig3d <- fig3d + facet_wrap(~Region, strip.position="top", scales="free_y", ncol = 2) ##split up sites with facets; choose this option or the one below
-fig3d <- fig3d + ylab("Number of DCCO nests")
-fig3d <- fig3d + scale_x_continuous(breaks=seq(1980, 2016, 2), expand=c(0,0))
-fig3d <- fig3d + scale_y_continuous(breaks=seq(0, 3500, 200), expand=c(0,0), limits = c(0, NA))
-fig3d <- fig3d + theme_bw()
-fig3d <- fig3d + theme(panel.spacing = unit(0.25, "in"))
-fig3d <- fig3d + theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
-fig3d <- fig3d + theme(axis.title.y = element_text(margin = margin(r=1, unit="line")))
-fig3d
+#fig3d <- ggplot(data = subset(phil.data, subset = Region !="NonBridge"), aes(x = Year, y=total))
+#fig3d <- fig3d + geom_point(size=2)
+#fig3d <- fig3d + geom_smooth(method = "loess")
+#fig3d <- fig3d + facet_wrap(~Region, strip.position="top", scales="free_y", ncol = 2) ##split up sites with facets; choose this option or the one below
+#fig3d <- fig3d + ylab("Number of DCCO nests")
+#fig3d <- fig3d + scale_x_continuous(breaks=seq(1980, 2016, 2), expand=c(0,0))
+#fig3d <- fig3d + scale_y_continuous(breaks=seq(0, 3500, 200), expand=c(0,0), limits = c(0, NA))
+#fig3d <- fig3d + theme_bw()
+#fig3d <- fig3d + theme(panel.spacing = unit(0.25, "in"))
+#fig3d <- fig3d + theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
+#fig3d <- fig3d + theme(axis.title.y = element_text(margin = margin(r=1, unit="line")))
+#fig3d
 
 #png(filename = "fig3.png", units="in", width=6*1.5, height=4*1.5,  res=200);fig3; dev.off()
 
@@ -711,7 +711,7 @@ min.year<-min.year$min.year
 ##TABLE OF PERCENT CHANGE
 Regions<-as.character(unique(regional.pred$Region))
 dur<-c(str_c(min.year, "-2003"), rep("2003-2017",length(Regions)), str_c(min.year, "-2017"))
-change.dat<-data.frame(Region=rep(Regions,3), Years=dur, start=c(min.year, rep(2003, length(Regions)), min.year), end=c(rep(2003, length(Regions)), rep(2017, length(Regions)*2)), percent.change=NA, percent.change.rep=NA, lower95=NA, upper95=NA)
+change.dat<-data.frame(Region=rep(Regions,3), Years=dur, start=c(min.year, rep(2003, length(Regions)), min.year), end=c(rep(2003, length(Regions)), rep(2017, length(Regions)*2)), percent.change=NA, percent.change.rep=NA, lower95=NA, upper95=NA, q1=NA, q3=NA)
 
 per.change.func<-function(x,y) {ifelse(y>x & ((y-x)/x)<0,-round((y-x)/x*100,2), ifelse(y<x & ((y-x)/x)>0,-round((y-x)/x*100,2),round((y-x)/x*100,2)))}
 
@@ -751,6 +751,8 @@ for (j in 1:nrow(change.dat)) {
   ##assign upper and lower CI
   change.dat$lower95[j]<-l95.temp
   change.dat$upper95[j]<-u95.temp
+  change.dat$q1[j]<-as.numeric(summary(rep.ord)[2])
+  change.dat$q3[j]<-as.numeric(summary(rep.ord)[5])
   
   #hist(percent.change.rep); abline(v=change.dat$percent.change[j])
   ##ADD PERCENT CHANGE IN RAW COUNTS FITTED TO LOESS
@@ -1017,6 +1019,8 @@ sf.pred$sf.pred.sd<-sf.pred.sd
 sf.pred$sf.pred.med<-sf.pred.med
 sf.pred$sf.ci.lower<-sf.pred.lower
 sf.pred$sf.ci.upper<-sf.pred.upper
+sf.pred$q1<-as.numeric(apply(sf.pred.ord, FUN=summary, MARGIN = 2)[2,])
+sf.pred$q3<-as.numeric(apply(sf.pred.ord, FUN=summary, MARGIN = 2)[5,])
 
 ##replace missing years of counts with NA
 for (j in 1:nrow(sf.pred)) {
@@ -1045,7 +1049,7 @@ fig
 png(filename = str_c("fig.SF.trend.png"), units="in", width=4, height=3.5,  res=200);print(fig); dev.off()
 
 ##add to percent change table
-change.sf<-data.frame(Region=rep("San Francisco Bay", 3), Years=NA, start=c(1990, 2003, 1990), end=c(2003, 2017, 2017), percent.change=NA, percent.change.rep=NA, lower95=NA, upper95=NA)
+change.sf<-data.frame(Region=rep("San Francisco Bay", 3), Years=NA, start=c(1990, 2003, 1990), end=c(2003, 2017, 2017), percent.change=NA, percent.change.rep=NA, lower95=NA, upper95=NA, q1=NA, q3=NA)
 change.sf$Years<-str_c(change.sf$start, "-", change.sf$end)
 
 for (j in 1:nrow(change.sf)) {
@@ -1063,6 +1067,9 @@ for (j in 1:nrow(change.sf)) {
   change.sf$lower95[j]<-rep.ord[round(0.025*length(percent.change.rep),0)]
   change.sf$upper95[j]<-rep.ord[round(0.975*length(percent.change.rep),0)]
   
+  change.sf$q1[j]<-as.numeric(summary(rep.ord)[2])
+  change.sf$q3[j]<-as.numeric(summary(rep.ord)[5])
+  
   change.sf$percent.change[j]<-per.change.func(subset(sf.pred.rep, Year==change.sf$start[j])$pred.regional, subset(sf.pred.rep, Year==change.sf$end[j])$pred.regional)
   
   #hist(percent.change.rep); abline(v=change.sf$percent.change.rep[j]); abline(v=change.sf$lower95[j], lty="dashed"); abline(v=change.sf$upper95[j], lty="dashed")
@@ -1070,8 +1077,8 @@ for (j in 1:nrow(change.sf)) {
 }
 
 change.tab<-rbind(change.dat, change.sf)
-change.tab$"Percent change (95% CI)"<-str_c(round(change.tab$percent.change.rep,0), "% (", round(change.tab$lower95,0), ", ", round(change.tab$upper95,0), ")")
-change.tab<-subset(change.tab, select=c(Region, Years, `Percent change (95% CI)`))
+change.tab$"Percent change (Q1, Q3)"<-str_c(round(change.tab$percent.change.rep,0), "% (", round(change.tab$q1,0), ", ", round(change.tab$q3,0), ")")
+change.tab<-subset(change.tab, select=c(Region, Years, `Percent change (Q1, Q3)`))
 
 ##calculate % smaller
 #type.model<-lm(Ground~Aerial, data=data.temp)
@@ -1110,7 +1117,7 @@ change.annual<-cbind(subset(regional.sf.pred.rep, select=c(Year, Region)), per.c
 change.annual.rep<-cbind(change.annual, change.annual.rep)
 
 ##create change table from mean annual values
-change.tab.annual<-data.frame(rbind(subset(change.dat, select=c(Region, Years, start, end)), subset(change.sf, select=c(Region, Years, start, end))), per.change=NA, l95=NA, u95=NA)
+change.tab.annual<-data.frame(rbind(subset(change.dat, select=c(Region, Years, start, end)), subset(change.sf, select=c(Region, Years, start, end))), per.change=NA, l95=NA, u95=NA, q1=NA, q3=NA)
 
 for (j in 1:nrow(change.tab.annual)) {
   region.temp<-change.tab.annual$Region[j]
@@ -1122,10 +1129,12 @@ for (j in 1:nrow(change.tab.annual)) {
   change.tab.annual$per.change[j]<-round(median(mean.rep.temp),0)
   change.tab.annual$u95[j]<-round(sort(mean.rep.temp)[length(mean.rep.temp)*0.975],0)
   change.tab.annual$l95[j]<-round(sort(mean.rep.temp)[length(mean.rep.temp)*0.025],0)
+  change.tab.annual$q1[j]<-round(as.numeric(summary(mean.rep.temp)[2]),0)
+  change.tab.annual$q3[j]<-round(as.numeric(summary(mean.rep.temp)[5]),0)
 }
 
-change.tab.annual$`Mean annual change (95% CI)`<-str_c(change.tab.annual$per.change, "% (", change.tab.annual$l95, ", ", change.tab.annual$u95, ")")
+change.tab.annual$`Mean annual change (Q1, Q3)`<-str_c(change.tab.annual$per.change, "% (", change.tab.annual$q1, ", ", change.tab.annual$q3, ")")
 change.tab.annual<-subset(change.tab.annual, select=-c(start, end, per.change, l95, u95))
 
-change.tab.combo<-cbind(change.tab, subset(change.tab.annual, select=`Mean annual change (95% CI)`))
+change.tab.combo<-cbind(change.tab, subset(change.tab.annual, select=`Mean annual change (Q1, Q3)`))
 change.tab.combo
