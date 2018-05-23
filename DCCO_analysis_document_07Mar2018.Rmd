@@ -188,3 +188,15 @@ Summary of coefficients and fit for the selected model.
 summary(model.plot)
 ```
 
+#Appendix II
+Table of annual percent change in model trend estimates for each region.
+```{r, echo=FALSE}
+knitr::kable(change.appendix, row.names = F)
+```
+
+#Appendix III
+Plot comparing aerial to ground counts at the South Farallon Islands. Counts in this region differ based on survey type. If aerial counts are obtained, ground counts can be approximated by multiplying the aerial count by 0.3 and adding 50.
+```{r, echo=FALSE, fig.height=5, fig.width=6.5}
+print(SFI.methods.fig)
+```
+Figure A1. Comparison of aerial and ground counts at the South Farallon Islands. The solid line shows a linear model with the equation and R2 values displaying in the upper left corner of the plot. The dashed line shows the expected 1:1 relationship under the null assumption that counts are similar for every survey type.

@@ -947,12 +947,29 @@ fig
 png(filename = str_c("fig.type.effect.png"), units="in", width=4, height=3.5,  res=200);print(fig); dev.off()
 
 ##plot effect of survey type
-data.temp<-subset(counts.raw, select=c(Colony, Year, Count, Survey.type), subset= Colony!="South Farallon Islands")
+data.temp<-subset(counts.raw, select=c(Colony, Year, Count, Survey.type), subset= Colony=="South Farallon Islands")
 data.temp<- data.temp %>% spread(key = Survey.type, value = Count) %>% data.frame()
 
-data.temp<-subset(data.temp, select=c(Aerial, Boat, Boat.Ground, Ground))
+data.temp<-subset(data.temp, select=c(Aerial, Ground))
 
 plot(Ground~Aerial, data=data.temp); abline(a = 0, b=1, lty="dashed"); abline(a= coefficients(lm(Ground~Aerial, data=data.temp))[1], b= coefficients(lm(Ground~Aerial, data=data.temp))[2])
+
+slope<-round(coefficients(lm(Ground~Aerial, data=data.temp))[2], 1)
+intercept<-round(coefficients(lm(Ground~Aerial, data=data.temp))[1], 1)
+r2<-round(summary(lm(Ground~Aerial, data=data.temp))$r.squared,2)
+equation<-str_c(" y = ", slope, "x + ", intercept, "\n ", "R2", " = ", r2)
+
+fig <- ggplot(data=data.temp, aes(x=Aerial, y=Ground))
+fig <- fig + geom_point(size=2)
+fig <- fig + geom_smooth(method = "lm", se = F)
+fig <- fig + geom_abline(slope = 1, intercept = 0, lty="dashed")
+fig <- fig + theme_classic() + xlab("Aerial count") + ylab("Ground count")
+fig <- fig + geom_text(aes(x=-Inf, y=Inf, hjust=0, vjust=1, label=equation))
+fig <- fig + scale_x_continuous(breaks = function(x) round(seq(from = x[1], to = x[2], by = (x[2]-x[1])/10),0))
+fig <- fig + scale_y_continuous(breaks = function(x) round(seq(from = x[1], to = x[2], by = (x[2]-x[1])/10),0))
+fig <- fig + theme(text = element_text(size=14))
+fig
+SFI.methods.fig<-fig
 
 ##GET REGIONAL TREND FOR ALL REGIONS
 counts.sf<-subset(counts.m8, select=c(Colony, Year, Region, pred, pred.se, Count)) ##decide if want to include bridges or not at this step
@@ -1114,6 +1131,16 @@ l95<-round(as.numeric(apply(X = change.annual.rep, MARGIN = 1, FUN = function(x)
 ##combine labels with percent annual change values
 change.annual<-cbind(subset(regional.sf.pred.rep, select=c(Year, Region)), per.change=mean.annual.change, u95=u95, l95=l95)
 change.annual.rep<-cbind(change.annual, change.annual.rep)
+
+##create appendix table of annual percent change
+change.annual$`Percent annual change`<-str_c(round(change.annual$per.change,0), "% (", round(change.annual$l95,0), ", ", round(change.annual$u95,0), ")")
+change.appendix<-subset(change.annual, select=c(Year, Region, `Percent annual change`), subset= per.change!="NA")
+##replace years before data were available for a given region
+min.year.sf<-c(min.year, 1990)
+for (j in 1:length(unique(change.appendix$Region))) {
+  change.appendix<-subset(change.appendix, !(Region==unique(change.appendix$Region)[j] & Year<min.year.sf[j]))
+}
+change.appendix<-spread(data = change.appendix, key = Region, value = `Percent annual change`, fill = "-")
 
 ##create change table from mean annual values
 change.tab.annual<-data.frame(rbind(subset(change.dat, select=c(Region, Years, start, end)), subset(change.sf, select=c(Region, Years, start, end))), per.change=NA, l95=NA, u95=NA, q1=NA, q3=NA)
