@@ -461,7 +461,7 @@ AIC(M0, M1, M2, M3)
 ##look for lowest AIC
 
 ##quasi models to deal with overdispersion
-#M9q<-gam(Count ~ s(Year, by=Colony) + s(day) + Survey.type,
+#M9q<-gam(Count ~ s(Year, by=Colony) + s(day),
 #         data = counts,
 #         family = quasipoisson)
 
@@ -709,7 +709,7 @@ min.year<-min.year$min.year
 #min.year<-c(1994, 1999, 2001, 2000, 1985) ##earliest year with sufficient data to look at trend. ordered same as colonies
 
 ##TABLE OF PERCENT CHANGE
-Regions<-as.character(unique(regional.pred$Region))
+Regions<-sort(as.character(unique(regional.pred$Region)))
 dur<-c(str_c(min.year, "-2003"), rep("2003-2017",length(Regions)), str_c(min.year, "-2017"))
 change.dat<-data.frame(Region=rep(Regions,3), Years=dur, start=c(min.year, rep(2003, length(Regions)), min.year), end=c(rep(2003, length(Regions)), rep(2017, length(Regions)*2)), percent.change=NA, percent.change.rep=NA, lower95=NA, upper95=NA, q1=NA, q3=NA)
 
@@ -1037,8 +1037,7 @@ fig <- ggplot(data = sf.pred, aes(x=Year))
 #fig <- fig + geom_path(aes(y = pred.sf))
 #fig <- fig + geom_point(aes(y=normalize(total, range=range.pred, method="range")))
 fig <- fig + geom_path(aes(y = sf.pred.med), size = 1.1)
-fig <- fig + geom_path(aes(y = sf.ci.lower), lty="dashed")
-fig <- fig + geom_path(aes(y = sf.ci.upper), lty="dashed")
+fig <- fig + geom_path(aes(y = sf.ci.lower), lty="dashed") + geom_path(aes(y = sf.ci.upper), lty="dashed")
 fig <- fig + ylab("Trend")
 fig <- fig + theme_classic()
 #fig <- fig + scale_y_continuous(breaks=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), sec.axis = sec_axis(~ ., name = "Total regional count", breaks = seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels = round(seq(range[1], range[2], (range[2]-range[1])/10), 0)))
@@ -1077,8 +1076,8 @@ for (j in 1:nrow(change.sf)) {
 }
 
 change.tab<-rbind(change.dat, change.sf)
-change.tab$"Percent change (Q1, Q3)"<-str_c(round(change.tab$percent.change.rep,0), "% (", round(change.tab$q1,0), ", ", round(change.tab$q3,0), ")")
-change.tab<-subset(change.tab, select=c(Region, Years, `Percent change (Q1, Q3)`))
+change.tab$"Percent change"<-str_c(round(change.tab$percent.change.rep,0), "% (", round(change.tab$q1,0), ", ", round(change.tab$q3,0), ")")
+change.tab<-subset(change.tab, select=c(Region, Years, `Percent change`))
 
 ##calculate % smaller
 #type.model<-lm(Ground~Aerial, data=data.temp)
@@ -1133,8 +1132,8 @@ for (j in 1:nrow(change.tab.annual)) {
   change.tab.annual$q3[j]<-round(as.numeric(summary(mean.rep.temp)[5]),0)
 }
 
-change.tab.annual$`Mean annual change (Q1, Q3)`<-str_c(change.tab.annual$per.change, "% (", change.tab.annual$q1, ", ", change.tab.annual$q3, ")")
+change.tab.annual$`Mean annual change`<-str_c(change.tab.annual$per.change, "% (", change.tab.annual$q1, ", ", change.tab.annual$q3, ")")
 change.tab.annual<-subset(change.tab.annual, select=-c(start, end, per.change, l95, u95))
 
-change.tab.combo<-cbind(change.tab, subset(change.tab.annual, select=`Mean annual change (Q1, Q3)`))
+change.tab.combo<-cbind(change.tab, subset(change.tab.annual, select=`Mean annual change`))
 change.tab.combo
