@@ -17,7 +17,7 @@ library(BBmisc) ##required for normalize function
 
 ##load DCCO nest counts
 #counts<-read.csv("DCCO_counts_18Aug2017.csv")
-counts<-read.xls("C:/Users/max/Desktop/Tarjan/Science/DCCO_counts_04Apr2018.xlsx")
+counts<-read.xls("C:/Users/max/Desktop/Tarjan/Science/DCCO_counts_20Jun2018.xlsx")
 
 ##add zeros to the first years in counts
 counts.zero<-counts
@@ -73,7 +73,7 @@ counts.raw<-subset(counts, Count.type != "Seasonal total" & Region != "" & Regio
 
 ##RESTRICTIONS
 ##exclude seasonal total count type
-counts<-subset(counts.raw, Count.type != "Seasonal total" & Region != "" & Region != "NA" & Exclude.comments=="")
+counts<-subset(counts.raw, Count.type != "Seasonal total" & Region != "" & Region != "NA" & Exclude.comments=="" & is.na(Count)==F)
 #counts<-subset(counts, Count.type != "Seasonal total" & Region != "" & Region != "NA")
 
 ##VIEW DATA
@@ -298,11 +298,11 @@ fig3c
 #par(mfrow=c(1,length(unique(counts$time.period))))
 
 ##LOAD PHIL'S REGIONAL COUNTS
-#phil.data<-read.csv("C:/Users/max/Desktop/Tarjan/Science/DCCO/DCCO_regional_counts_Phil_12Jul2017.csv")
-#phil.data<-tidyr::gather(phil.data, "Year", "Count", 2:ncol(phil.data)) ##rearrange data
-#phil.data$Year<-as.numeric(str_sub(phil.data$Year, 2, 5)) ##format year (remove space)
-#phil.data<-subset(phil.data, subset = Count!='NA')
-#colnames(phil.data)<-c("Region", "Year", "total")
+phil.data<-read.csv("C:/Users/max/Desktop/Tarjan/Science/DCCO/DCCO_regional_counts_Phil_12Jul2017.csv")
+phil.data<-tidyr::gather(phil.data, "Year", "Count", 2:ncol(phil.data)) ##rearrange data
+phil.data$Year<-as.numeric(str_sub(phil.data$Year, 2, 5)) ##format year (remove space)
+phil.data<-subset(phil.data, subset = Count!='NA')
+colnames(phil.data)<-c("Region", "Year", "total")
 
 ##data<-read.csv("DCCO_regional_counts_Phil_12Jul2017.csv")
 ##data.org<-data
@@ -310,20 +310,20 @@ fig3c
 ##data$Year<-as.numeric(str_sub(data$Year, 2, 5)) ##format year (remove space)
 ##data<-subset(data, subset = Count!='NA')
 
-#fig3d <- ggplot(data = subset(phil.data, subset = Region !="NonBridge"), aes(x = Year, y=total))
-#fig3d <- fig3d + geom_point(size=2)
-#fig3d <- fig3d + geom_smooth(method = "loess")
-#fig3d <- fig3d + facet_wrap(~Region, strip.position="top", scales="free_y", ncol = 2) ##split up sites with facets; choose this option or the one below
-#fig3d <- fig3d + ylab("Number of DCCO nests")
-#fig3d <- fig3d + scale_x_continuous(breaks=seq(1980, 2016, 2), expand=c(0,0))
-#fig3d <- fig3d + scale_y_continuous(breaks=seq(0, 3500, 200), expand=c(0,0), limits = c(0, NA))
-#fig3d <- fig3d + theme_bw()
-#fig3d <- fig3d + theme(panel.spacing = unit(0.25, "in"))
-#fig3d <- fig3d + theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
-#fig3d <- fig3d + theme(axis.title.y = element_text(margin = margin(r=1, unit="line")))
-#fig3d
+fig3d <- ggplot(data = subset(phil.data, subset = Region !="NonBridge"), aes(x = Year, y=total))
+fig3d <- fig3d + geom_point(size=2)
+fig3d <- fig3d + geom_smooth(method = "loess")
+fig3d <- fig3d + facet_wrap(~Region, strip.position="top", scales="free_y", ncol = 2) ##split up sites with facets; choose this option or the one below
+fig3d <- fig3d + ylab("Number of DCCO nests")
+fig3d <- fig3d + scale_x_continuous(breaks=seq(1980, 2016, 2), expand=c(0,0))
+fig3d <- fig3d + scale_y_continuous(breaks=seq(0, 3500, 200), expand=c(0,0), limits = c(0, NA))
+fig3d <- fig3d + theme_bw()
+fig3d <- fig3d + theme(panel.spacing = unit(0.25, "in"))
+fig3d <- fig3d + theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
+fig3d <- fig3d + theme(axis.title.y = element_text(margin = margin(r=1, unit="line")))
+fig3d
 
-#png(filename = "fig3.png", units="in", width=6*1.5, height=4*1.5,  res=200);fig3; dev.off()
+png(filename = "fig3.complete.years.png", units="in", width=6*1.5, height=4*1.5,  res=200);fig3d; dev.off()
 
 ##PLOT EFFECT OF BRIDGE POP ON NON-BRIDGE POP
 #data.test<-tidyr::spread(data, value = Count, key = Region)
@@ -707,6 +707,7 @@ regional.pred.original<-regional.pred
 min.year<-subset(regional.counts, is.na(total)==F) %>% group_by(Region) %>% summarize(min.year=min(Year)) %>% data.frame()
 min.year<-min.year$min.year
 #min.year<-c(1994, 1999, 2001, 2000, 1985) ##earliest year with sufficient data to look at trend. ordered same as colonies
+min.year<-c(1984, 1990, 1997, 1990, 1987)
 
 ##TABLE OF PERCENT CHANGE
 Regions<-sort(as.character(unique(regional.pred$Region)))
