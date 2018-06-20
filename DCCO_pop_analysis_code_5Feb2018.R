@@ -1050,8 +1050,8 @@ for (j in 1:nrow(sf.pred)) {
 
 ##PLOT SF TREND
 range.pred<-round(c(min(sf.pred$pred.sf), max(sf.pred$pred.sf)),1)
-range<-c(min(sf.pred$total), max(sf.pred$total))
-fig <- ggplot(data = sf.pred, aes(x=Year))
+#range<-c(min(sf.pred$total), max(sf.pred$total))
+fig <- ggplot(data = subset(sf.pred, Year>=1990), aes(x=Year))
 #fig <- fig + geom_path(aes(y = pred.sf))
 #fig <- fig + geom_point(aes(y=normalize(total, range=range.pred, method="range")))
 fig <- fig + geom_path(aes(y = sf.pred.med), size = 1.1)

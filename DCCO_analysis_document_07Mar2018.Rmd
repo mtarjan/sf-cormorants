@@ -106,7 +106,7 @@ table.num<-table.num+1
 ```
 Table `r table.num`. Percent change in each region across pre-bridge construction (pre-2003), during bridge construction (2003-2017), and all years. Percent change values are followed by the first and third quartiles of the estimated data distribution in parentheses.
 ```{r, echo=FALSE}
-knitr::kable(change.tab.combo, row.names = F)
+knitr::kable(change.tab.combo[,1:3], row.names = F)
 ```
 
 #Figures
