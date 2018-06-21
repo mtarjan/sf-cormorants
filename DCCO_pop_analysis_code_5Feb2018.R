@@ -561,7 +561,7 @@ new.dat$Year<-as.numeric(as.character(new.dat$Year))
 new.dat$Colony<-as.factor(new.dat$Colony)
 ##use Model.plot
 ##PREDICT ACROSS FULL RANGE OF YEARS FOR EACH SITE; THEN CALCUATE REGIONAL PREDICTED COUNTS
-predictions<-predict.gam(object = model.plot, newdata = new.dat, type = "link", se.fit = T) ##TYPE CAN BE RESPONSE OR LINK
+predictions<-predict.gam(object = model.plot, newdata = new.dat, type = "response", se.fit = T) ##TYPE CAN BE RESPONSE OR LINK
 pred<-as.numeric(predictions$fit)
 pred.se<-as.numeric(predictions$se.fit)
 
