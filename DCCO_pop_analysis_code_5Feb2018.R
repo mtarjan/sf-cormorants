@@ -76,6 +76,9 @@ counts.raw<-subset(counts, Count.type != "Seasonal total" & Region != "" & Regio
 counts<-subset(counts.raw, Count.type != "Seasonal total" & Region != "" & Region != "NA" & Exclude.comments=="" & is.na(Count)==F)
 #counts<-subset(counts, Count.type != "Seasonal total" & Region != "" & Region != "NA")
 
+##add average count day if the day is missing
+counts$day[which(is.na(counts$day))]<-round(mean(counts$day, na.rm=T), 0)
+
 ##VIEW DATA
 
 ##TABLE OF SAMPLE SIZE
@@ -396,6 +399,34 @@ as.character(sort(large.sites$Colony))
 large.sites<-large.sites$Colony
 counts.sub<-subset(counts, Colony %in% large.sites)
 
+##LOESS PREDICTIONS FOR EACH COLONY
+counts.loess<-dim(0)
+for (j in 1:length(unique(counts$Colony))) {
+  #j<-j+1
+  col.temp<-unique(counts$Colony)[j]
+  dat.temp<-subset(counts, Colony==col.temp)
+  if (nrow(subset(dat.temp, Count>0))<3) {next}
+  
+  fit.loess<-loess(formula = Count~Year, data = dat.temp)
+  pred.l<-predict(object = fit.loess, newdata = data.frame(Year=min(dat.temp$Year):max(dat.temp$Year)), se = T)
+  counts.loess<-rbind(counts.loess, data.frame(Colony=col.temp, Region = dat.temp$Region[1], Year=min(dat.temp$Year):max(dat.temp$Year), pred=pred.l$fit, se.upper=pred.l$fit +pred.l$se.fit, se.lower=pred.l$fit-pred.l$se))
+  
+  ##replace values below 0 with 0
+  if (length(which(counts.loess$pred<0))>0) {counts.loess[which(counts.loess$pred<0),]$pred<-0}
+  if (length(which(counts.loess$se.lower<0))>0) {counts.loess[which(counts.loess$se.lower<0),]$se.lower<-0}
+  if (length(which(counts.loess$se.upper<0))>0) {counts.loess[which(counts.loess$se.upper<0),]$se.upper<-0}
+  
+  dat.plot<-subset(counts.loess, Colony==col.temp)
+  fig <- ggplot(data = dat.plot, aes(x = Year))
+  fig <- fig + geom_path(aes(y = pred))
+  fig <- fig + geom_path(aes(y = se.upper), lty="dashed") + geom_path(aes(y = se.lower), lty="dashed")
+  fig <- fig + geom_point(data = dat.temp, aes(x = Year, y = Count))
+  fig <- fig + facet_grid(.~Colony)
+  fig
+}
+
+counts.loess<-dplyr::left_join(counts.loess, y=subset(counts, select=c(Colony, Year, Count)))
+
 ##GAM
 ##code from Shadish et al. 2014. Using generalized additive (mixed) models to analyze single case designs. (in Mendeley)
 
@@ -561,7 +592,7 @@ new.dat$Year<-as.numeric(as.character(new.dat$Year))
 new.dat$Colony<-as.factor(new.dat$Colony)
 ##use Model.plot
 ##PREDICT ACROSS FULL RANGE OF YEARS FOR EACH SITE; THEN CALCUATE REGIONAL PREDICTED COUNTS
-predictions<-predict.gam(object = model.plot, newdata = new.dat, type = "response", se.fit = T) ##TYPE CAN BE RESPONSE OR LINK
+predictions<-predict.gam(object = model.plot, newdata = new.dat, type = "link", se.fit = T) ##TYPE CAN BE RESPONSE OR LINK
 pred<-as.numeric(predictions$fit)
 pred.se<-as.numeric(predictions$se.fit)
 
@@ -650,6 +681,8 @@ counts.m8 %>% group_by(Year, Region) %>% summarize(weights=sum(error.weight))
 ##WEIGHT THE predictions BY POPULATION SIZE (and variance)
 regional.pred<-counts.m8 %>% group_by(Year, Region) %>% summarise(total=sum(Count, na.rm=T), pred.regional=sum(pred*weight*error.weight)) %>% data.frame()
 
+regional.pred.loess<-counts.loess %>% group_by(Year, Region) %>% summarise(total=sum(Count, na.rm=T), pred.regional=sum(pred)) %>% data.frame()
+
 ##ITERATE TO GET MEAN REGIONAL PREDICTION AND CI
 ##replace pred by randomly selected pred within a range of values
 ##assume predictions come from a normal distribution with se==pred.se
@@ -665,6 +698,8 @@ counts.m8$pred.sd<-counts.m8$pred.se*sqrt(counts.m8$edf.sum+1)
 rep<-10000
 pred.rep<-apply(X = subset(counts.m8, select=c(pred, pred.sd)), MARGIN = 1, FUN = function(x,y,z,n) rnorm(n = n, mean=x[y], sd=x[z]), n = rep, y=1, z=2) %>% data.frame() %>% t() ##alter this to change assumption about error around model predicted estimates
 
+pred.rep.loess<-apply(X = subset(counts.loess, select=c(pred, se.upper, se.lower)), MARGIN=1, FUN = function (x,n) runif(n = n, min = x[3], max=x[2]), n=rep)
+
 ##visualize replicate distributions
 #boxplot(pred.rep[1,]); mean(pred.rep[1,]); counts.m8$pred[1]
 #boxplot(rnorm(mean=counts.m8$pred[1], sd=counts.m8$pred.sd[1], n=100))
@@ -676,6 +711,15 @@ for (j in 1:ncol(pred.rep)) {
   counts.temp$pred<-pred.rep[,j] ##replace prediction with replicate prediction
   regional.pred.temp<-counts.temp %>% group_by(Year, Region) %>% summarise(pred.regional=sum(pred*weight*error.weight)) %>% data.frame()
   regional.pred.rep<-cbind(regional.pred.rep, r.pred.rep=regional.pred.temp$pred.regional)
+}
+
+##do the same for loesss
+regional.pred.rep.loess<-regional.pred.loess
+for (j in 1:ncol(pred.rep.loess)) {
+  counts.temp<-counts.loess
+  counts.temp$pred<-pred.rep.loess[,j] ##replace prediction with replicate prediction
+  regional.pred.temp<-counts.temp %>% group_by(Year, Region) %>% summarise(pred.regional=sum(pred)) %>% data.frame()
+  regional.pred.rep.loess<-cbind(regional.pred.rep.loess, r.pred.rep=regional.pred.temp$pred.regional)
 }
 
 ##get mean regional prediction and CI
@@ -712,9 +756,11 @@ min.year<-c(1984, 1990, 1997, 1990, 1987)
 ##TABLE OF PERCENT CHANGE
 Regions<-sort(as.character(unique(regional.pred$Region)))
 dur<-c(str_c(min.year, "-2003"), rep("2003-2017",length(Regions)), str_c(min.year, "-2017"))
-change.dat<-data.frame(Region=rep(Regions,3), Years=dur, start=c(min.year, rep(2003, length(Regions)), min.year), end=c(rep(2003, length(Regions)), rep(2017, length(Regions)*2)), percent.change=NA, percent.change.rep=NA, lower95=NA, upper95=NA, q1=NA, q3=NA)
+change.dat<-data.frame(Region=rep(Regions,3), Years=dur, start=c(min.year, rep(2003, length(Regions)), min.year), end=c(rep(2003, length(Regions)), rep(2017, length(Regions)*2)), percent.change=NA, percent.change.rep=NA, lower95=NA, upper95=NA, q1=NA, q3=NA, growth=NA, growth.rep=NA, growth.lower95=NA, growth.upper95=NA)
 
 per.change.func<-function(x,y) {ifelse(y>x & ((y-x)/x)<0,-round((y-x)/x*100,2), ifelse(y<x & ((y-x)/x)>0,-round((y-x)/x*100,2),round((y-x)/x*100,2)))}
+
+growth.func<- function(x,y, year1, year2) {(y-x)/(year2-year1)} ##function to calculate growth rate
 
 for (j in 1:nrow(change.dat)) {
   region.temp<-as.character(change.dat$Region[j])
@@ -762,6 +808,16 @@ for (j in 1:nrow(change.dat)) {
   #raw.start<-predict(object = raw.loess, newdata = data.frame(Year=start.year.temp))
   #raw.end<-predict(object = raw.loess, newdata = data.frame(Year=end.year.temp))
   #change.dat$raw.change[j]<-per.change.func(raw.start, raw.end)
+  
+  ##calc GROWTH RATE
+  change.dat$growth[j]<-growth.func(x = initial.temp$pred.regional, y = final.temp$pred.regional, year1 = start.year.temp, year2 = end.year.temp)
+  ##get it for the reps
+  growth.rep<-growth.func(x=initial.rep, y=final.rep, year1 = start.year.temp, year2 = end.year.temp)
+  ##med and CI for growth
+  change.dat$growth.rep[j]<-round(median(growth.rep, na.rm = T),2) ##median growth rate
+  rep.growth.ord<-growth.rep[order(growth.rep)] ##order the reps
+  change.dat$growth.lower95[j]<-rep.growth.ord[round(0.025*length(rep.growth.ord),0)]
+  change.dat$growth.upper95[j]<-rep.growth.ord[round(0.975*length(rep.growth.ord),0)]
 }
 
 change.dat<-change.dat[order(change.dat$Region),]
@@ -848,6 +904,8 @@ for (j in 1:length(unique(regional.pred$Region))) {
   #dat.temp$trend.norm<-normalize(dat.temp$pred.regional, range=c(0,100), method="range")
   dat.plot<-rbind(dat.plot, dat.temp)
 }
+
+#dat.plot<-subset(regional.pred.loess, Region=="Outer Coast")
 
 ##plot as facets
 fig <- ggplot(dat.plot, aes(x=Year, y=pred.regional))
@@ -1066,7 +1124,7 @@ fig
 png(filename = str_c("fig.SF.trend.png"), units="in", width=4, height=3.5,  res=200);print(fig); dev.off()
 
 ##add to percent change table
-change.sf<-data.frame(Region=rep("San Francisco Bay", 3), Years=NA, start=c(1990, 2003, 1990), end=c(2003, 2017, 2017), percent.change=NA, percent.change.rep=NA, lower95=NA, upper95=NA, q1=NA, q3=NA)
+change.sf<-data.frame(Region=rep("San Francisco Bay", 3), Years=NA, start=c(1990, 2003, 1990), end=c(2003, 2017, 2017), percent.change=NA, percent.change.rep=NA, lower95=NA, upper95=NA, q1=NA, q3=NA, growth=NA, growth.rep=NA, growth.lower95=NA, growth.upper95=NA)
 change.sf$Years<-str_c(change.sf$start, "-", change.sf$end)
 
 for (j in 1:nrow(change.sf)) {
@@ -1091,11 +1149,24 @@ for (j in 1:nrow(change.sf)) {
   
   #hist(percent.change.rep); abline(v=change.sf$percent.change.rep[j]); abline(v=change.sf$lower95[j], lty="dashed"); abline(v=change.sf$upper95[j], lty="dashed")
   
+  ##calc GROWTH RATE
+  change.sf$growth[j]<-growth.func(x = subset(sf.pred.rep, Year==change.sf$start[j])$pred.regional, y = subset(sf.pred.rep, Year==change.sf$end[j])$pred.regional, year1 = change.sf$start[j], year2 = change.sf$end[j])
+  ##get it for the reps
+  growth.rep<-growth.func(x=initial.rep, y=final.rep, year1 = change.sf$start[j], year2 = change.sf$end[j])
+  ##med and CI for growth
+  change.sf$growth.rep[j]<-round(median(growth.rep, na.rm = T),2) ##median growth rate
+  rep.growth.ord<-growth.rep[order(growth.rep)] ##order the reps
+  change.sf$growth.lower95[j]<-rep.growth.ord[round(0.025*length(rep.growth.ord),0)]
+  change.sf$growth.upper95[j]<-rep.growth.ord[round(0.975*length(rep.growth.ord),0)]
+  
 }
 
 change.tab<-rbind(change.dat, change.sf)
-change.tab$"Percent change"<-str_c(round(change.tab$percent.change.rep,0), "% (", round(change.tab$q1,0), ", ", round(change.tab$q3,0), ")")
-change.tab<-subset(change.tab, select=c(Region, Years, `Percent change`))
+#change.tab$"Percent change"<-str_c(round(change.tab$percent.change.rep,0), "% (", round(change.tab$q1,0), ", ", round(change.tab$q3,0), ")")
+#change.tab<-subset(change.tab, select=c(Region, Years, `Percent change`))
+##use growth instead
+change.tab$"Growth rate"<-str_c(round(change.tab$growth.rep,2), " (", round(change.tab$growth.lower95,2), ", ", round(change.tab$growth.upper95,2), ")")
+change.tab<-subset(change.tab, select=c(Region, Years, `Growth rate`))
 
 ##calculate % smaller
 #type.model<-lm(Ground~Aerial, data=data.temp)
