@@ -775,8 +775,6 @@ regional.pred.original<-regional.pred
 
 #min.year<-rep(1985, 5)
 min.year<-subset(regional.counts, is.na(total)==F) %>% group_by(Region) %>% summarize(min.year=min(Year)) %>% data.frame()
-#min.year<-min.year$min.year
-#min.year<-c(1994, 1999, 2001, 2000, 1985) ##earliest year with sufficient data to look at trend. ordered same as colonies
 min.year$min.year<-c(1984, 1990, 1997, 1990, 1987, 1990)
 
 ##TABLE OF PERCENT CHANGE
