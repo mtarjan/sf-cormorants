@@ -20,15 +20,15 @@ library(BBmisc) ##required for normalize function
 counts<-read.xls("C:/Users/max/Desktop/Tarjan/Science/DCCO_counts_20Jun2018.xlsx")
 
 ##add zeros to the first years in counts
-counts.zero<-counts
-for (j in 1:length(unique(counts$Colony))) {
-  dat.temp<-subset(counts, Colony==unique(counts$Colony)[j])
-  min.yr.temp<-min(dat.temp$Year)
-  if(min.yr.temp==1984) {next}
-  yrs.temp<-1984:(min.yr.temp-1)
-  counts.zero<-rbind(counts.zero, data.frame(Colony=rep(dat.temp$Colony[1],length(yrs.temp)), Year=yrs.temp, Count=rep(0,length(yrs.temp)), Survey.Date=NA, Organization=NA, Survey.type=NA, lat=rep(dat.temp$lat[1], length(yrs.temp)), long=rep(dat.temp$long[1], length(yrs.temp)), Region=rep(dat.temp$Region[1], length(yrs.temp)), Count.type=rep("", length(yrs.temp)), Exclude.comments=rep("", length(yrs.temp)), Comments=NA, Incomplete.year=NA))
-}
-counts.zero<-counts.zero[order(counts.zero$Colony,counts.zero$Year),]
+#counts.zero<-counts
+#for (j in 1:length(unique(counts$Colony))) {
+#  dat.temp<-subset(counts, Colony==unique(counts$Colony)[j])
+#  min.yr.temp<-min(dat.temp$Year)
+#  if(min.yr.temp==1984) {next}
+#  yrs.temp<-1984:(min.yr.temp-1)
+#  counts.zero<-rbind(counts.zero, data.frame(Colony=rep(dat.temp$Colony[1],length(yrs.temp)), Year=yrs.temp, Count=rep(0,length(yrs.temp)), Survey.Date=NA, Organization=NA, Survey.type=NA, lat=rep(dat.temp$lat[1], length(yrs.temp)), long=rep(dat.temp$long[1], length(yrs.temp)), Region=rep(dat.temp$Region[1], length(yrs.temp)), Count.type=rep("", length(yrs.temp)), Exclude.comments=rep("", length(yrs.temp)), Comments=NA, Incomplete.year=NA))
+#}
+#counts.zero<-counts.zero[order(counts.zero$Colony,counts.zero$Year),]
 
 #counts<-counts.zero
 
@@ -73,7 +73,7 @@ counts.raw<-subset(counts, Count.type != "Seasonal total" & Region != "" & Regio
 
 ##RESTRICTIONS
 ##exclude seasonal total count type
-counts<-subset(counts.raw, Count.type != "Seasonal total" & Region != "" & Region != "NA" & Exclude.comments=="" & is.na(Count)==F & is.na(Survey.type)==F & Survey.type!="")
+counts<-subset(counts.raw, Count.type != "Seasonal total" & Region != "" & Region != "NA" & Exclude.comments=="" & is.na(Count)==F)
 #counts<-subset(counts, Count.type != "Seasonal total" & Region != "" & Region != "NA")
 
 ##add average count day if the day is missing
@@ -98,7 +98,7 @@ ms.table1<-data.frame(count(x=unique(subset(counts, select=c(Region, Colony, lat
 fig1<-ggplot(data = counts, aes(x = Year, y=Count, color=Colony)) + geom_point()
 fig1 <- fig1 + geom_smooth(method="lm", se = F, aes(linetype = Region))
 fig1 <- fig1 + ylab("Number of DCCO nests")
-fig1
+#fig1
 
 ##colors for bar plots
 mycols<-c("#E7298A", "#771155", "#114477", "#771122", "#DDDD77", "#1B9E77", "#66A61E","#7570B3", "#A6761D", "#4477AA", "#D95F02", "#E6AB02", "#666666")
@@ -582,10 +582,19 @@ model.plot<-M1
 ##GENERATE CONFIDENCE INTERVALS FOR GAM MODEL USING SIMULATION
 ##https://stat.ethz.ch/pipermail/r-help/2011-April/275632.html
 
-##plot sum of site counts for a given region
-#new.dat<-table(counts$Year, as.character(counts$Colony)) %>% data.frame()
-#colnames(new.dat)<-c("Year", "Colony", "Freq")
+##make new.dat that includes entire range of years for every colony
 new.dat<-data.frame(Year=rep(min(counts$Year):max(counts$Year), length(unique(counts$Colony))), Colony=rep(unique(counts$Colony), length(min(counts$Year):max(counts$Year)))%>% sort())
+##make new.dat that includes range of years after the first year that each colony has data
+#new.dat<-dim(0)
+#max.year<-max(counts$Year)
+#for (j in 1:length(unique(counts$Colony))) {
+#  colony.temp<-unique(counts$Colony)[j]
+#  min.year<-min(subset(counts, Colony==colony.temp)$Year)
+#  new.dat<-rbind(new.dat, data.frame(Colony=colony.temp, Year=min.year:max.year))
+#}
+##make new.dat that only has years with known counts
+#new.dat<-subset(counts, select=c(Colony, Year))
+
 new.dat<-dplyr::left_join(new.dat, y=subset(counts, Region!="San Francisco Bay", select=c(Region,Colony)), by = c("Colony","Colony"))
 new.dat<-unique(new.dat)
 new.dat<-subset(new.dat, Region!="")
@@ -614,7 +623,7 @@ pred.se<-as.numeric(predictions$se.fit)
 ##confidence intervals
 #ci<-MASS::confint(model.plot, level=0.95, trace=F)
 counts.m8<-cbind(new.dat, pred, pred.se, pred.link, pred.se.link)
-counts.m8<-subset(counts.m8, pred !="Inf")
+counts.m8<-subset(counts.m8, pred !="Inf" & pred.link!="Inf")
 
 ##add field counts to predicted counts.m8
 #counts.temp<-counts; counts.temp$colony.year<-str_c(as.character(counts$Colony), counts$Year)
@@ -642,6 +651,9 @@ for (j in 1:length(unique(counts.m8$Colony))) {
 
 head(counts.m8.sub)
 
+##overwrite with initial counts.m8
+#counts.m8.sub<-counts.m8
+
 ##add normalized predictor by colony
 #counts.m8.sub$pred.norm<-rep(NA, nrow(counts.m8.sub))
 #for (j in 1:length(unique(counts.m8.sub$Colony))) {
@@ -655,6 +667,9 @@ head(counts.m8.sub)
 
 ##subset counts m8 to get large colonies only
 counts.m8<-subset(counts.m8, Colony %in% large.sites)
+
+##subset counts.m8 to get preds with error less than 2* max count
+#counts.m8<-subset(counts.m8, pred.se<max(counts$Count, na.rm=T)*2)
 
 ##get a weight for the predictions based on relative colony size (the average size of the colony / the size of the regional counts) and relative error (estimated erro / sum of error for all sites in the region in that year). relative colony size and relative error should each sum to one across colonies in year x for each region
 out<-dim(0)
@@ -676,7 +691,7 @@ for (j in 1:nrow(counts.m8)){
   n.temp<-length(unique(subset(counts.m8, Region==region.temp & Year==year.temp)$Colony))
   error.weight<-(1-counts.m8$pred.se[j]/error.year)/(n.temp-1)
   
-  if (length(unique(subset(counts.m8, Region==region.temp)$Colony))==1) {error.weight<-1} ##if there is only one colony in the region, then the error weight is 1
+  if (length(unique(subset(counts.m8, Region==region.temp & Year==year.temp)$Colony))==1) {error.weight<-1} ##if there is only one colony in the region, then the error weight is 1
   
   out<-rbind(out, c(size.weight, error.weight))
 }
@@ -781,7 +796,7 @@ min.year$min.year<-c(1984, 1990, 1997, 1990, 1987, 1990)
 #Regions<-sort(as.character(unique(regional.pred$Region)))
 Regions<-min.year$Region
 dur<-c(str_c(min.year$min.year, "-2003"), rep("2003-2017",length(Regions)), str_c(min.year$min.year, "-2017"))
-change.dat<-data.frame(Region=rep(Regions,3), Years=dur, start=c(min.year$min.year, rep(2003, length(Regions)), min.year$min.year), end=c(rep(2003, length(Regions)), rep(2017, length(Regions)*2)), percent.change=NA, percent.change.rep=NA, lower95=NA, upper95=NA, q1=NA, q3=NA, growth=NA, growth.rep=NA, growth.lower95=NA, growth.upper95=NA)
+change.dat<-data.frame(Region=rep(Regions,3), Years=dur, start=c(min.year$min.year, rep(2003, length(Regions)), min.year$min.year), end=c(rep(2003, length(Regions)), rep(2017, length(Regions)*2)), percent.change=NA, percent.change.rep=NA, lower95=NA, upper95=NA, q1=NA, q3=NA, growth=NA, growth.rep=NA, growth.lower95=NA, growth.upper95=NA, growth.q1=NA, growth.q3=NA)
 
 per.change.func<-function(x,y) {ifelse(y>x & ((y-x)/x)<0,-round((y-x)/x*100,2), ifelse(y<x & ((y-x)/x)>0,-round((y-x)/x*100,2),round((y-x)/x*100,2)))}
 
@@ -844,6 +859,8 @@ for (j in 1:nrow(change.dat)) {
   rep.growth.ord<-growth.rep[order(growth.rep)] ##order the reps
   change.dat$growth.lower95[j]<-round(rep.growth.ord[round(0.025*length(rep.growth.ord),0)],2)
   change.dat$growth.upper95[j]<-round(rep.growth.ord[round(0.975*length(rep.growth.ord),0)],2)
+  change.dat$growth.q1[j]<-round(as.numeric(summary(rep.growth.ord)[2]),2)
+  change.dat$growth.q3[j]<-round(as.numeric(summary(rep.growth.ord)[5]),2)
 }
 
 change.dat<-change.dat[order(change.dat$Region),]
@@ -872,8 +889,9 @@ for (j in 1:length(unique(regional.pred$Region))) {
     fig <- fig + scale_y_continuous(breaks = seq(range[1], range[2],round((range[2]-range[1])/10, 0)), lim=c(range[1], range[2]))
     fig
     
-    fig.heights<-c(3, 7.5, 5, 6, 5)
-    png(filename = str_c("fig.",region.temp, ".counts.colonies.png"), units="in", width=6.5, height=fig.heights[j],  res=200);print(fig); dev.off()
+    #fig.heights<-c(3, 7.5, 5, 6, 5)
+    fig.height<-sqrt(length(unique(data.plot$Colony)))*2
+    png(filename = str_c("fig.",region.temp, ".counts.colonies.png"), units="in", width=6.5, height=fig.height,  res=200);print(fig); dev.off()
     
     ##plot the colony predictions with SE
     data.plot<-subset(counts.m8.sub, Region==region.temp)
@@ -885,7 +903,7 @@ for (j in 1:length(unique(regional.pred$Region))) {
     fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 3), labels=seq(1985, 2017, 3)) + theme(axis.text.x = element_text(angle = 45, hjust=1))
     fig
     
-    png(filename = str_c("fig.",region.temp, ".gam.colonies.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
+    png(filename = str_c("fig.",region.temp, ".gam.colonies.png"), units="in", width=6.5, height=fig.height,  res=200);print(fig); dev.off()
   }
   
   ##plot trends by region
@@ -1194,7 +1212,7 @@ change.tab<-change.dat
 change.tab$"Percent change"<-str_c(round(change.tab$percent.change.rep,0), "% (", round(change.tab$q1,0), ", ", round(change.tab$q3,0), ")")
 #change.tab<-subset(change.tab, select=c(Region, Years, `Percent change`))
 ##use growth instead
-change.tab$"Growth rate"<-str_c(round(change.tab$growth.rep,2), " (", round(change.tab$growth.lower95,2), ", ", round(change.tab$growth.upper95,2), ")")
+change.tab$"Growth rate"<-str_c(round(change.tab$growth.rep,2), " (", round(change.tab$growth.q1,2), ", ", round(change.tab$growth.q3,2), ")")
 change.tab<-subset(change.tab, select=c(Region, Years, `Growth rate`, `Percent change`))
 
 ##calculate % smaller
