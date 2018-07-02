@@ -46,6 +46,10 @@ counts$Colony[which(acronyms!='NA')]<-acronyms[which(acronyms!='NA')]
 
 counts$Colony<-factor(counts$Colony)
 
+##make blank survey.type NA
+counts$Survey.type[which(counts$Survey.type=="")]<-NA
+counts$Survey.type<-drop.levels(x = counts$Survey.type) ##drop unused level
+
 ##make edits to add incomplete year info
 #counts$Incomplete.year[which(counts$Region=="North Bay" & counts$Year %in% c(1991, 1992, 1995:2002))]<-"yes" ##north bay region missing knight island counts 1995-2002
 #counts$Incomplete.year[which(counts$Region=="Outer Coast" & counts$Year ==2000)]<-"yes" ##Outer Coast: For 2000, we have a 0 for Hog Island, but Lake Merced is ND. So I think the 0 in 2000 in this Chart should be removed
@@ -495,7 +499,7 @@ AIC(M0, M1, M2, M3)
 ##look for lowest AIC
 
 ##quasi models to deal with overdispersion
-#M9q<-gam(Count ~ s(Year, by=Colony) + s(day),
+#M1q<-gam(Count ~ s(Year, by=Colony) + s(day),
 #         data = counts,
 #         family = quasipoisson)
 
@@ -507,22 +511,22 @@ model.fit$deviance.explained<-round(c(summary(M0)$dev.expl, summary(M1)$dev.expl
 model.fit<-subset(model.fit, select=c(Model, df, AIC, UBRE, deviance.explained))
 
 ##SELECT MODEL TO PLOT
-model.plot<-M1
+model.plot<-M3
 
-##plot model M8
-#P8<-predict(M8, se.fit = T)
-#plot(M8$model$Year, M8$fitted.values)
+##plot model
+#P<-predict(model.plot, se.fit = T)
+#plot(model.plot$model$Year, model.plot$fitted.values)
 
 ##diagnostic plots
-#E8<-resid(M8, type="pearson")
-#F8<-fitted(M8)
-#plot(x=F8, y=E8); abline(h=0)
+#E1<-resid(model.plot, type="pearson")
+#F1<-fitted(model.plot)
+#plot(x=F1, y=E1); abline(h=0)
 
 ##residuals for every colony
 #xyplot(E8~F8 | M8$model$Colony)
 
 ##histogram of residuals
-#hist(E8)
+#hist(E1)
 
 ##plot residuals against covariates
 #plot(x=M8$model$Survey.type, y=E8)
@@ -798,7 +802,11 @@ Regions<-min.year$Region
 dur<-c(str_c(min.year$min.year, "-2003"), rep("2003-2017",length(Regions)), str_c(min.year$min.year, "-2017"))
 change.dat<-data.frame(Region=rep(Regions,3), Years=dur, start=c(min.year$min.year, rep(2003, length(Regions)), min.year$min.year), end=c(rep(2003, length(Regions)), rep(2017, length(Regions)*2)), percent.change=NA, percent.change.rep=NA, lower95=NA, upper95=NA, q1=NA, q3=NA, growth=NA, growth.rep=NA, growth.lower95=NA, growth.upper95=NA, growth.q1=NA, growth.q3=NA)
 
-per.change.func<-function(x,y) {ifelse(y>x & ((y-x)/x)<0,-round((y-x)/x*100,2), ifelse(y<x & ((y-x)/x)>0,-round((y-x)/x*100,2),round((y-x)/x*100,2)))}
+per.change.func<-function(x,y) {
+  x[which(round(x,0)<=0)]<-1
+  y[which(round(y,0)<=0)]<-1
+  ifelse(y>x & ((y-x)/x)<0,-round((y-x)/x*100,2), ifelse(y<x & ((y-x)/x)>0,-round((y-x)/x*100,2),round((y-x)/x*100,2)))
+  }
 
 growth.func<- function(x,y, year1, year2) {(y-x)/(year2-year1)} ##function to calculate growth rate
 
@@ -962,7 +970,7 @@ fig <- fig + theme_classic()
 fig <- fig + ylab(label = "Count Trend")
 fig <- fig + scale_x_continuous(breaks=seq(1980, 2017, 5), limits = c(1982,2017))
 fig <- fig + theme(axis.text.x = element_text(angle = 45, hjust=1))
-fig <- fig + scale_y_continuous(breaks= round(seq(min(dat.plot$pred.regional),max(dat.plot$pred.regional),max(dat.plot$pred.regional)/10),0))
+#fig <- fig + scale_y_continuous(breaks= round(seq(min(dat.plot$pred.regional),max(dat.plot$pred.regional),max(dat.plot$pred.regional)/10),0))
 fig <- fig + theme(strip.background = element_rect(colour = "white", fill = "white"))
 fig
 
@@ -1237,7 +1245,7 @@ regional.sf.pred.rep<-regional.sf.pred.rep[order(regional.sf.pred.rep$Region, re
 #change.annual<-per.change.func(lag(regional.sf.pred.rep$pred.regional,1), regional.sf.pred.rep$pred.regional)
 
 ##calc percent annual change for all columns
-reps<-subset(regional.sf.pred.rep, select=str_detect(names(regional.sf.pred.rep), "rep"))
+reps<-subset(regional.sf.pred.rep, select=str_detect(names(regional.sf.pred.rep), "pred.rep"))
 change.annual.rep<-apply(X = reps, MARGIN = 2, FUN = function(x) {per.change.func(lag(x,1), x)})
 
 ##replace values with NA for first year for each region
