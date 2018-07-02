@@ -805,7 +805,8 @@ change.dat<-data.frame(Region=rep(Regions,3), Years=dur, start=c(min.year$min.ye
 per.change.func<-function(x,y) {
   x[which(round(x,0)<=0)]<-1
   y[which(round(y,0)<=0)]<-1
-  ifelse(y>x & ((y-x)/x)<0,-round((y-x)/x*100,2), ifelse(y<x & ((y-x)/x)>0,-round((y-x)/x*100,2),round((y-x)/x*100,2)))
+  #ifelse(y>x & ((y-x)/x)<0,-round((y-x)/x*100,2), ifelse(y<x & ((y-x)/x)>0,-round((y-x)/x*100,2),round((y-x)/x*100,2)))
+  round((y-x)/x*100,2)
   }
 
 growth.func<- function(x,y, year1, year2) {(y-x)/(year2-year1)} ##function to calculate growth rate
@@ -836,7 +837,7 @@ for (j in 1:nrow(change.dat)) {
   med.change<-round(median(percent.change.rep, na.rm = T),2)
   sd.change<-round(sd(percent.change.rep, na.rm=T),2)
   
-  change.dat$percent.change.rep[j]<-med.change
+  change.dat$percent.change.rep[j]<-mean.change
   
   ##calc confidence intervals
   ##order the values to get CI
@@ -863,7 +864,7 @@ for (j in 1:nrow(change.dat)) {
   ##get it for the reps
   growth.rep<-growth.func(x=initial.rep.link, y=final.rep.link, year1 = start.year.temp, year2 = end.year.temp)
   ##med and CI for growth
-  change.dat$growth.rep[j]<-round(median(growth.rep, na.rm = T),2) ##median growth rate
+  change.dat$growth.rep[j]<-round(mean(growth.rep, na.rm = T),2) ##median growth rate
   rep.growth.ord<-growth.rep[order(growth.rep)] ##order the reps
   change.dat$growth.lower95[j]<-round(rep.growth.ord[round(0.025*length(rep.growth.ord),0)],2)
   change.dat$growth.upper95[j]<-round(rep.growth.ord[round(0.975*length(rep.growth.ord),0)],2)
@@ -1039,7 +1040,7 @@ png(filename = str_c("fig.day.effect.png"), units="in", width=4, height=3.5,  re
 #fig
 
 ##effect of survey type on predicted trend value
-type<-as.character(unique(counts$Survey.type))
+type<-as.character(unique(subset(counts, is.na(Survey.type)==F)$Survey.type))
 type.sim<-data.frame(Year= rep(median(counts$Year), length(type)), Colony=rep("Steinburger Slough", length(type)), Region=rep("South Bay", length(type)), Survey.type=type, day=rep(round(mean(day, na.rm = T), 0), length(type)))
 ##get predications for new data
 pred<-predict(model.plot, newdata = type.sim, se.fit=T)$fit %>% as.numeric()
@@ -1217,10 +1218,10 @@ SFI.methods.fig<-fig
 
 #change.tab<-rbind(change.dat, change.sf)
 change.tab<-change.dat
-change.tab$"Percent change"<-str_c(round(change.tab$percent.change.rep,0), "% (", round(change.tab$q1,0), ", ", round(change.tab$q3,0), ")")
+change.tab$"Percent change"<-str_c(round(change.tab$percent.change.rep,0), "% (", round(change.tab$lower95,0), ", ", round(change.tab$upper95,0), ")")
 #change.tab<-subset(change.tab, select=c(Region, Years, `Percent change`))
 ##use growth instead
-change.tab$"Growth rate"<-str_c(round(change.tab$growth.rep,2), " (", round(change.tab$growth.q1,2), ", ", round(change.tab$growth.q3,2), ")")
+change.tab$"Growth rate"<-str_c(round(change.tab$growth.rep,1), " (", round(change.tab$growth.lower95,1), ", ", round(change.tab$growth.upper95,1), ")")
 change.tab<-subset(change.tab, select=c(Region, Years, `Growth rate`, `Percent change`))
 
 ##calculate % smaller

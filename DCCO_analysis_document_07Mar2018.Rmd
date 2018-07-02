@@ -52,11 +52,10 @@ The regional estimate for each year is thus represented by the mean and standard
 
 #Results
 ##Model selection
-Model 1 (count as a function of year, colony, and survey date) had the lowest AIC score and UBRE of the four models tested. This model suggested that the day of season effect was significant (p<0.0001) and the parameter estimates indicated that counts collected early in the season are strongly biased. To avoid this bias, we selected Model 1 to estimate regional trends. This GAMM had a UBRE score of `r round(summary(model.plot)$sp.criterion,2)` and the deviance explained was `r round(summary(model.plot)$dev.expl*100,0)`%. 
+The full model, or Model 3 (count as a function of year, colony, survey date, and survey type), had the lowest AIC score and UBRE of the four models tested (Table 1). This model suggested that the effects of survey type and the day of season were significant, so we selected Model 3 to estimate regional trends while accounts for these effects. This GAMM had a UBRE score of `r round(summary(model.plot)$sp.criterion,2)` and the deviance explained was `r round(summary(model.plot)$dev.expl*100,0)`%. 
 
 ##Effects of covariates
-<!--The parameter estimates for Aerial surveys differ significantly from Boat/Ground, Boat, and Ground surveys (p<0.001). -->
-Survey date showed a non-linear trend, where surveys early in the season and at the very end of the season resulted in lower trend estimates.
+The parameter estimates for Aerial surveys differ significantly from Boat/Ground, Boat, and Ground surveys (p<0.0001). Survey date showed a non-linear trend, where surveys early in the season and at the very end of the season resulted in lower trend estimates (p<0.0001) (Appendix I).
 
 ##Regional trends
 <!-- ###Bridges Region
