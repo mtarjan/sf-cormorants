@@ -1293,3 +1293,12 @@ change.tab.annual<-subset(change.tab.annual, select=-c(start, end, per.change, l
 
 change.tab.combo<-cbind(subset(change.tab, select=-`Percent change`), subset(change.tab.annual, select=`Mean annual change`))
 change.tab.combo
+
+##make table with years as column headers
+change.per<-change.tab
+change.per$Years<-as.character(change.per$Years)
+change.per$Years[which(str_detect(change.per$Years, "-2003"))]<-"pre-2003"
+change.per$Years[which(str_detect(change.per$Years, "19..-2017"))]<-"All years"
+change.per<-subset(change.per, select=-`Growth rate`) %>% spread(key = Years, value = `Percent change`)
+change.per<-change.per[,c(1,4,2,3)]
+change.per
