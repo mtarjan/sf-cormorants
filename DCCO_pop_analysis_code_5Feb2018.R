@@ -799,8 +799,8 @@ min.year$min.year<-c(1984, 1990, 1997, 1990, 1987, 1990)
 ##TABLE OF PERCENT CHANGE
 #Regions<-sort(as.character(unique(regional.pred$Region)))
 Regions<-min.year$Region
-dur<-c(str_c(min.year$min.year, "-2003"), rep("2003-2017",length(Regions)), str_c(min.year$min.year, "-2017"))
-change.dat<-data.frame(Region=rep(Regions,3), Years=dur, start=c(min.year$min.year, rep(2003, length(Regions)), min.year$min.year), end=c(rep(2003, length(Regions)), rep(2017, length(Regions)*2)), percent.change=NA, percent.change.rep=NA, lower95=NA, upper95=NA, q1=NA, q3=NA, growth=NA, growth.rep=NA, growth.lower95=NA, growth.upper95=NA, growth.q1=NA, growth.q3=NA)
+dur<-c(str_c(min.year$min.year, "-2003"), rep("2004-2017",length(Regions)), str_c(min.year$min.year, "-2017"))
+change.dat<-data.frame(Region=rep(Regions,3), Years=dur, start=c(min.year$min.year, rep(2004, length(Regions)), min.year$min.year), end=c(rep(2003, length(Regions)), rep(2017, length(Regions)*2)), percent.change=NA, percent.change.rep=NA, lower95=NA, upper95=NA, q1=NA, q3=NA, growth=NA, growth.rep=NA, growth.lower95=NA, growth.upper95=NA, growth.q1=NA, growth.q3=NA)
 
 per.change.func<-function(x,y) {
   x[which(round(x,0)<=0)]<-1
