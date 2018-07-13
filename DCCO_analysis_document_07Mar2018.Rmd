@@ -25,12 +25,15 @@ table.num<-0
 This manuscript describes trends in DCCO populations in the San Francisco Bay Area from 1984--2017.
 
 #Methods
-##General Additive Mixed Models (GAMMs)
-Count data are frequently used to estimate population trends, but are subject to biases in data collection. Notably, raw counts are strongly affected by survey effort and survey dates. Our raw counts are likey subject to these effects because not all sites in a region were counted in every year. Site occupation also depends on day of the season. Birds arrive to breed in April, peak breeding occurs in June, and they depart in August. Nest counts increase and then decrease as the season progresses, so day of the season is an important covariate when inferring colony size. Other potential covariates are survey type (aerial, boat, or ground). To account for potential biases, we tested competing models that included measured covariates in our estimates of regional trends. Long-term population dynamics are frequently non-linear, so we used an approach that would allow for nonlinear trends.
+##San Francisco Bay Bird Observatory: Ground Counts
+South Bay colonies (Alviso Ponds, Bunting Pond, Dumbarton Towers, Lake Merritt, Moffett Towers, Plant 1/3A, Redwood Creek, Steinberger Slough, and San Mateo Bridge) and two Outer Coast colonies (Pescadero Marsh and Lake Merced) were monitored at least once a month from early March to early August and twice a month in May and June, for a total of 8 survey dates a year. Trained volunteers used binoculars and spotting scopes to count active nests from vantage points on the ground near each colony. For sites with multiple monitoring dates, peak nest counts in each year were used in the analysis. Double-crested Cormorants that nest within California Gull colonies, which occurs at sites A9 in Alviso and Plant 1/3A in Coyote Hills, are surveyed by SFBBO staff and volunteers once per year in the second week of May during annual California Gull walkthrough surveys. To avoid disturbance of cormorants and to decrease risk of depredation of eggs and chicks by California Gulls, staff use scopes and binoculars to estimate the number of adults and nests from a minimum distance of 20m from nearby levees or kayaks.
 
-General additive mixed models allow each colony to growth nonlinearly over time by including an interaction term between colony and year. Estimating the regional counts by summing colony counts and weighting those counts by estimated error corrects for years when certain colonies were not visited. This method also allows for additive terms to inform colony size, so we were able to test the effect of count date and survey type on colony counts.
+##Data Analysis
+Count data are frequently used to estimate population trends, but are subject to biases in data collection. Notably, raw counts are strongly affected by survey date, and regional totals are affected by survey effort. Our raw counts are likely subject to these effects because not all sites in the region were counted in every year and site occupation depends on day of the season. Nest counts increase and then decrease as the season progresses, so day of the season is an important covariate when inferring colony size. Other potential covariates are survey type (aerial, boat, or ground). To account for potential biases, we tested competing models that included measured covariates in our estimates of regional trends. Long-term population dynamics are frequently non-linear, so we used an approach that would allow for nonlinear trends.
 
-Methods follow those of Shadish et al. 2014. GAMMs were developed using the gam function in R. We considered the following models:
+General additive mixed models (GAMMs) allow each colony to growth nonlinearly over time by including an interaction term between colony and year. Estimating the regional counts by summing colony counts and weighting those counts by estimated error corrects for years when certain colonies were not visited. This method also allows for additive terms to inform colony size, so we were able to test the effect of count date and survey type on colony counts.
+
+Methods follow those of Shadish et al. (2014). GAMMs were developed using the mgcv package (Wood 2011) in R version 3.3.2 (R Core Team 2016). We considered the following models:
 
 Model 0) count ~ s(year * colony) + colony
 
@@ -40,22 +43,18 @@ Model 2) count ~ s(year * colony) + colony + survey type
 
 Model 3) count ~ s(year * colony) + colony + s(day) + survey type
 
-where the s() function allows the estimate to vary nonlinearly, and the year-by-colony interaction allows the colony trend to change nonlinearly across years. We assessed the model fit using the un-biased risk estimator (UBRE), which is the minimized generalised cross-validation score of the fitted GAM. Lower UBRE scores indicate a better model fit to the data (Wood 2006). We also compared the models using Akaike information criterion (AIC).
+The s() function allows the estimate to vary nonlinearly, and the year-by-colony interaction allows the colony trend to change nonlinearly across years. We assessed the model fit using the un-biased risk estimator (UBRE), which is the minimized generalized cross-validation score of the fitted GAM. Lower UBRE scores indicate a better model fit to the data (Wood 2006). We also compared the models using Akaike information criterion (AIC).
 
-We calcuated each annual regional trend estimate (mean and standard deviation) by simulating a distribution of regional estimates across a range of colony trend estimates. We randomly selected 10,000 replicate estimates for each colony-by-year parameter from a normal distribution of estimates, where the mean was equal to the mean reported by the model and the standard deviation was calculated using the standard error and the estimated degrees of freedom reported by the model.
+We assumed that the regional trend estimate in a given year is equal to the sum of the estimated colony trends. We limited the colonies included in the regional trend estimate to those with a minimum of 10 nests and 10 years of count data, namely: `r as.character(large.sites)`. The estimated colony trends were weighted by relative colony size (mean colony size divided by the sum of mean colony sizes in the region) and the relative error of the estimate (standard error of the estimate at a given colony divided by the sum of the standard errors for all colonies in the region). We encompassed the error of each annual colony estimate in the error for the regional trend by creating a distribution of regional estimates across the range of colony estimates reported by the model. Specifically, we randomly selected 10,000 replicate estimates for each colony-by-year parameter from a normal distribution of estimates, where the mean was equal to the mean reported by the model and the standard deviation was calculated using the standard error and the estimated degrees of freedom reported by the model. The regional estimate for each year is thus represented by the mean and standard deviation of these 10,000 replicate regional estimates, and encompasses the error in each of the colony trend estimates.
 
-<!-- \sigma = se \sqrt{(*d* + 1)} -->
-
-We then calculated the annual regional trend estimate for each of these replicates. We assumed that the regional trend estimate in a given year is equal to the sum of the estimated colony trends. We limited the colonies included in the regional trend estimate to those with a minimum of 10 nests and 10 years of count data, namely: `r as.character(large.sites)`. The estimated colony trends were weighted by relative colony size (mean colony size divided by the sum of mean colony sizes in the region) and the relative error of the estimate (standard error of the estimate at a given colony divided by the sum of the standard errors for all colonies in the region).
-
-The regional estimate for each year is thus represented by the mean and standard deviation of these 10,000 replicate regional estimates, and encompasses the error in each of the colony trend estimates.
+Two time periods of interest were identified and analyzed for each region and the entire study area: the first year of data available through 2003, and 2004-2017. The first period represents the period before construction of the new SFOBB, while the second period depicts the construction and post-construction period.
 
 #Results
 ##Model selection
-The full model, or Model 3 (count as a function of year, colony, survey date, and survey type), had the lowest AIC score and UBRE of the four models tested (Table 1). This model suggested that the effects of survey type and the day of season were significant, so we selected Model 3 to estimate regional trends while accounts for these effects. This GAMM had a UBRE score of `r round(summary(model.plot)$sp.criterion,2)` and the deviance explained was `r round(summary(model.plot)$dev.expl*100,0)`%. 
+The full model, or Model 3 (count as a function of year, colony, survey date, and survey type), had the lowest AIC score and UBRE of the four models tested (Table 1). This model suggested that the effects of survey type and the day of season were significant, so we selected Model 3 to estimate regional trends while accounting for these effects. This GAMM had a UBRE score of `r round(summary(model.plot)$sp.criterion,2)` and the deviance explained was `r round(summary(model.plot)$dev.expl*100,0)`% (Table 1). 
 
 ##Effects of covariates
-The parameter estimates for Aerial surveys differ significantly from Boat/Ground, Boat, and Ground surveys (p<0.0001). Survey date showed a non-linear trend, where surveys early in the season and at the very end of the season resulted in lower trend estimates (p<0.0001) (Appendix I).
+Survey date showed a non-linear trend, where surveys early in the season and at the very end of the season resulted in lower trend estimates (Fig. 6). The parameter estimates for aerial surveys differ significantly from boat/ground, boat, and ground surveys (p<0.0001) (Appendix I).
 
 ##Regional trends
 <!-- ###Bridges Region
@@ -105,7 +104,7 @@ table.num<-table.num+1
 ```
 Table `r table.num`. Percent change in each region across pre-bridge construction (pre-2003), during bridge construction (2003-2017), and all years. Percent change values are followed by the first and third quartiles of the estimated data distribution in parentheses.
 ```{r, echo=FALSE}
-knitr::kable(change.tab.combo[,1:3], row.names = F)
+knitr::kable(change.per, row.names = F)
 ```
 
 #Figures
@@ -173,12 +172,12 @@ figure.num<-figure.num+1
 Fig `r figure.num`. Effect of count date (ie day of the year) illustrated using predicted trend values for a standardized site, year, and survey type. 
 
 <!-- this notation makes text into a comment -->
-<!-- ######Page break -->
+######Page break
 ```{r, echo=FALSE}
-#knitr::include_graphics(path="fig.type.effect.png")
-#figure.num<-figure.num+1
+knitr::include_graphics(path="fig.type.effect.png")
+figure.num<-figure.num+1
 ```
-<!-- Fig `r figure.num`. Effect of survey type illustreated using the predicted trend value for a standard site, year, and day with standard error bars. This plot illustrates that survey types result in counts that differ in their similarity to the latent colony size. Counts from Aerial surveys differ significantly from Boat/Ground, Boat, and Ground surveys.  Aerial surveys that report a given colony count result in trend estimates that are `r round((subset(counts.type, Survey.type=="Aerial")$pred-subset(counts.type, Survey.type=="Ground")$pred)/(subset(counts.type, Survey.type=="Aerial")$pred+subset(counts.type, Survey.type=="Ground")$pred)*100, 2)`% larger than a Ground survey reporting the same colony count. -->
+Fig `r figure.num`. Effect of survey type illustreated using the predicted trend value for a standard site, year, and day with standard error bars. This plot illustrates that survey types result in counts that differ in their similarity to the latent colony size. Counts from Aerial surveys differ significantly from Boat/Ground, Boat, and Ground surveys.  Aerial surveys that report a given colony count result in trend estimates that are `r round((subset(counts.type, Survey.type=="Aerial")$pred-subset(counts.type, Survey.type=="Ground")$pred)/(subset(counts.type, Survey.type=="Aerial")$pred+subset(counts.type, Survey.type=="Ground")$pred)*100, 2)`% larger than a Ground survey reporting the same colony count.
 
 ######Page break
 #Appendix I
@@ -187,13 +186,13 @@ Summary of coefficients and fit for the selected model.
 summary(model.plot)
 ```
 
-#Appendix II
-Table of annual percent change in model trend estimates for each region.
+<!-- #Appendix II
+Table of annual percent change in model trend estimates for each region. -->
 ```{r, echo=FALSE}
-knitr::kable(change.appendix, row.names = F)
+#knitr::kable(change.appendix, row.names = F)
 ```
 
-#Appendix III
+#Appendix II
 Plot comparing aerial to ground counts at the South Farallon Islands. Counts in this region differ based on survey type. If aerial counts are obtained, ground counts can be approximated by multiplying the aerial count by 0.3 and adding 50.
 ```{r, echo=FALSE, fig.height=5, fig.width=6.5}
 print(SFI.methods.fig)

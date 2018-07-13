@@ -13,6 +13,7 @@ require(tidyr)
 library(stringr)
 library(gdata) ##required for read.xls
 library(BBmisc) ##required for normalize function
+library(lubridate)
 
 
 ##load DCCO nest counts
@@ -61,7 +62,6 @@ counts$Survey.type<-drop.levels(x = counts$Survey.type) ##drop unused level
 ##format date
 counts$Survey.Date<-as.Date(counts$Survey.Date, "%Y-%m-%d")
 
-library(lubridate)
 ##add day of year
 counts$day<-yday(counts$Survey.Date)
 
