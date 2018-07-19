@@ -133,13 +133,15 @@ regional.counts<-max.colony.counts %>% group_by(Region, Year) %>% summarise(tota
 #regional.counts$time.period[which(regional.counts$time.period>2002 & regional.counts$time.period != "pre")]<-"post"
 
 ##counts number of colonies tracked in each region
-n.colonies<-data.frame(table(counts$Region, counts$Year))
-n.colonies[,2]<-as.numeric(as.character(n.colonies[,2]))
-colnames(n.colonies)<-c("Region", "Year", "n.sites")
+#n.colonies<-data.frame(table(counts$Region, counts$Year))
+#n.colonies[,2]<-as.numeric(as.character(n.colonies[,2]))
+#colnames(n.colonies)<-c("Region", "Year", "n.sites")
 
 regional.counts$n.sites<-rep(0, nrow(regional.counts))
 for (j in 1:nrow(regional.counts)) {
-  regional.counts$n.sites[j]<-as.numeric(subset(n.colonies, subset = Region == regional.counts$Region[j] & Year == regional.counts$Year[j], select = n.sites))
+  region.temp<-regional.counts$Region[j]
+  year.temp<-regional.counts$Year[j]
+  regional.counts$n.sites[j]<-length(unique(subset(counts, Region==region.temp & Year==year.temp)$Colony))
 }
 
 ##plot of nest counts by year and site
@@ -307,6 +309,20 @@ fig3c
 #map1
 
 #par(mfrow=c(1,length(unique(counts$time.period))))
+
+##plot summary counts for sf bay region
+fig <- ggplot(data = subset(regional.counts, subset = Region =="San Francisco Bay"), aes(x = Year, y=total))
+fig <- fig + geom_point(size=2)
+fig <- fig + geom_path(size=1.1)
+fig <- fig + ylab("Number of DCCO nests")
+fig <- fig + scale_x_continuous(breaks=seq(1980, 2017, 2), expand=c(0,0), limits=c(1984,2018))
+fig <- fig + scale_y_continuous(breaks=seq(0, max(regional.counts$total)+200, 200), expand=c(0,0), limits = c(0, max(regional.counts$total)+200))
+fig <- fig + theme_classic()
+fig <- fig + theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
+fig <- fig + theme(axis.title.y = element_text(margin = margin(r=1, unit="line")))
+fig
+
+png(filename = "SFBay.counts.fig.png", units="in", width=5, height=4,  res=200);fig; dev.off()
 
 ##LOAD PHIL'S REGIONAL COUNTS
 phil.data<-read.csv("C:/Users/max/Desktop/Tarjan/Science/DCCO/DCCO_regional_counts_Phil_12Jul2017.csv")
@@ -799,8 +815,8 @@ min.year$min.year<-c(1984, 1990, 1997, 1990, 1987, 1990)
 ##TABLE OF PERCENT CHANGE
 #Regions<-sort(as.character(unique(regional.pred$Region)))
 Regions<-min.year$Region
-dur<-c(str_c(min.year$min.year, "-2003"), rep("2004-2017",length(Regions)), str_c(min.year$min.year, "-2017"))
-change.dat<-data.frame(Region=rep(Regions,3), Years=dur, start=c(min.year$min.year, rep(2004, length(Regions)), min.year$min.year), end=c(rep(2003, length(Regions)), rep(2017, length(Regions)*2)), percent.change=NA, percent.change.rep=NA, lower95=NA, upper95=NA, q1=NA, q3=NA, growth=NA, growth.rep=NA, growth.lower95=NA, growth.upper95=NA, growth.q1=NA, growth.q3=NA)
+dur<-c(str_c(min.year$min.year, "-2002"), rep("2003-2017",length(Regions)), str_c(min.year$min.year, "-2017"))
+change.dat<-data.frame(Region=rep(Regions,3), Years=dur, start=c(min.year$min.year, rep(2003, length(Regions)), min.year$min.year), end=c(rep(2002, length(Regions)), rep(2017, length(Regions)*2)), percent.change=NA, percent.change.rep=NA, lower95=NA, upper95=NA, q1=NA, q3=NA, growth=NA, growth.rep=NA, growth.lower95=NA, growth.upper95=NA, growth.q1=NA, growth.q3=NA)
 
 per.change.func<-function(x,y) {
   x[which(round(x,0)<=0)]<-1
@@ -1297,7 +1313,7 @@ change.tab.combo
 ##make table with years as column headers
 change.per<-change.tab
 change.per$Years<-as.character(change.per$Years)
-change.per$Years[which(str_detect(change.per$Years, "-2003"))]<-"pre-2003"
+change.per$Years[which(str_detect(change.per$Years, "-2002"))]<-"pre-2003"
 change.per$Years[which(str_detect(change.per$Years, "19..-2017"))]<-"All years"
 change.per<-subset(change.per, select=-`Growth rate`) %>% spread(key = Years, value = `Percent change`)
 change.per<-change.per[,c(1,4,2,3)]
