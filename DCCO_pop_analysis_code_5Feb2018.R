@@ -324,6 +324,30 @@ fig
 
 png(filename = "SFBay.counts.fig.png", units="in", width=5, height=4,  res=200);fig; dev.off()
 
+##plot raw counts for all regions
+for (j in 1:length(unique(counts$Region))) {
+  region.temp<-unique(counts$Region)[j]
+  if (region.temp=="San Francisco Bay") {next}
+  data.plot<-subset(counts, Region==region.temp)
+  range<-c(min(data.plot$Count, na.rm=T), max(data.plot$Count, na.rm=T))
+  
+  fig <- ggplot(data = data.plot, aes(x=Year))
+  fig <- fig + geom_point(aes(y=Count))
+  #fig <- fig + geom_point(aes(y=Count, color=Survey.type.y))
+  #fig <- fig + scale_colour_discrete(name="Survey type")
+  fig <- fig + theme_classic()
+  fig <- fig + theme(strip.background = element_rect(colour = "white", fill = "white"))
+  fig <- fig + ggtitle(region.temp) + ylab(label = "Number of DCCO nests")
+  fig <- fig + facet_wrap(~Colony, scales="free")
+  fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 5), lim=c(1985,2017)) + theme(axis.text.x = element_text(angle = 45, hjust=1))
+  fig <- fig + scale_y_continuous(breaks = seq(range[1], range[2],round((range[2]-range[1])/10, 0)), lim=c(range[1], range[2]))
+  fig
+  
+  #fig.heights<-c(3, 7.5, 5, 6, 5)
+  fig.height<-sqrt(length(unique(data.plot$Colony)))*2
+  png(filename = str_c("figs.raw.counts/fig.",region.temp, ".counts.all.colonies.png"), units="in", width=6.5, height=fig.height,  res=200);print(fig); dev.off()
+}
+
 ##LOAD PHIL'S REGIONAL COUNTS
 phil.data<-read.csv("C:/Users/max/Desktop/Tarjan/Science/DCCO/DCCO_regional_counts_Phil_12Jul2017.csv")
 phil.data<-tidyr::gather(phil.data, "Year", "Count", 2:ncol(phil.data)) ##rearrange data
@@ -726,7 +750,7 @@ counts.m8 %>% group_by(Year, Region) %>% summarize(weights=sum(error.weight))
 
 ##GET REGIONAL PREDICTIONS
 ##WEIGHT THE predictions BY POPULATION SIZE (and variance)
-regional.pred<-counts.m8 %>% group_by(Year, Region) %>% summarise(total=sum(Count, na.rm=T), pred.regional=sum(pred*weight*error.weight), pred.regional.link=sum(pred.link*weight*error.weight)) %>% data.frame()
+regional.pred<-counts.m8 %>% group_by(Year, Region) %>% summarise(total=sum(Count, na.rm=T), pred.regional=sum(pred*weight*error.weight)/sum(weight*error.weight), pred.regional.link=sum(pred.link*weight*error.weight)/sum(weight*error.weight)) %>% data.frame()
 
 #regional.pred.loess<-counts.loess %>% group_by(Year, Region) %>% summarise(total=sum(Count, na.rm=T), pred.regional=sum(pred)) %>% data.frame()
 
@@ -759,7 +783,7 @@ for (j in 1:ncol(pred.rep)) {
   counts.temp<-counts.m8
   counts.temp$pred<-pred.rep[,j] ##replace prediction with replicate prediction
   counts.temp$pred.link<-pred.rep.link[,j] ##replace link predictions with reps
-  regional.pred.temp<-counts.temp %>% group_by(Year, Region) %>% summarise(pred.regional=sum(pred*weight*error.weight), pred.regional.link=sum(pred.link*weight*error.weight)) %>% data.frame()
+  regional.pred.temp<-counts.temp %>% group_by(Year, Region) %>% summarise(pred.regional=sum(pred*weight*error.weight)/sum(weight*error.weight), pred.regional.link=sum(pred.link*weight*error.weight)/sum(weight*error.weight)) %>% data.frame()
   regional.pred.rep<-cbind(regional.pred.rep, r.pred.rep=regional.pred.temp$pred.regional, r.pred.link.rep=regional.pred.temp$pred.regional.link)
 }
 
