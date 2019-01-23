@@ -18,7 +18,7 @@ library(lubridate)
 
 ##load DCCO nest counts
 #counts<-read.csv("DCCO_counts_18Aug2017.csv")
-counts<-read.xls("C:/Users/max/Desktop/Tarjan/Science/DCCO_counts_20Jun2018.xlsx")
+counts<-read.xls("C:/Users/max/Desktop/Tarjan/Science/DCCO_counts_22Jan2019.xlsx")
 
 ##add zeros to the first years in counts
 #counts.zero<-counts
