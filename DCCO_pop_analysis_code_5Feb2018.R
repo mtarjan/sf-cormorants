@@ -1068,7 +1068,7 @@ fig
 png(filename = str_c("fig.type.effect.png"), units="in", width=4, height=3.5,  res=200);print(fig); dev.off()
 
 ##plot effect of survey type
-data.temp<-subset(counts.raw, select=c(Colony, Year, Count, Survey.type), subset= Colony=="South Farallon Islands")
+data.temp<-subset(counts, select=c(Colony, Year, Count, Survey.type), subset= Colony=="South Farallon Islands")
 data.temp<- data.temp %>% spread(key = Survey.type, value = Count) %>% data.frame()
 
 data.temp<-subset(data.temp, select=c(Aerial, Ground))
