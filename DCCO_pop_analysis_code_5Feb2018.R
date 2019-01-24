@@ -137,6 +137,7 @@ regional.counts<-max.colony.counts %>% group_by(Region, Year) %>% summarise(tota
 #n.colonies[,2]<-as.numeric(as.character(n.colonies[,2]))
 #colnames(n.colonies)<-c("Region", "Year", "n.sites")
 
+##add the number of sites
 regional.counts$n.sites<-rep(0, nrow(regional.counts))
 for (j in 1:nrow(regional.counts)) {
   region.temp<-regional.counts$Region[j]
@@ -1005,7 +1006,7 @@ for (j in 1:length(unique(regional.pred$Region))) {
 ##plot as facets
 fig <- ggplot(dat.plot, aes(x=Year, y=pred.regional))
 fig <- fig + geom_path(size=1.1)
-fig <- fig + geom_path(aes(y=r.pred.mean+r.pred.sd), lty="dashed") + geom_path(aes(y=r.pred.mean-r.pred.sd), lty="dashed") ##add error
+#fig <- fig + geom_path(aes(y=r.pred.mean+r.pred.sd), lty="dashed") + geom_path(aes(y=r.pred.mean-r.pred.sd), lty="dashed") ##add error
 fig <- fig + facet_wrap(~Region, scale="free_y")
 fig <- fig + theme_classic() 
 fig <- fig + ylab(label = "Count Trend")
@@ -1031,7 +1032,7 @@ fig <- fig + scale_y_continuous(breaks = function(x) round(seq(from = x[1],to = 
 fig <- fig + theme(strip.background = element_rect(colour = "white", fill = "white"))
 fig
 
-png(filename = str_c("fig.regional.trends.facet.freey.png"), units="in", width=6.5, height=5,  res=200);print(fig); dev.off()
+png(filename = str_c("fig.regional.trends.facet.zoom.png"), units="in", width=6.5, height=5,  res=200);print(fig); dev.off()
 
 ##plot with overlap
 #fig <- ggplot(dat.plot, aes(x=Year, y=pred.regional, color=Region))
@@ -1043,6 +1044,20 @@ png(filename = str_c("fig.regional.trends.facet.freey.png"), units="in", width=6
 #fig
 
 #png(filename = str_c("fig.regional.trends.overlap.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
+
+##PLOT REGIONAL COUNTS
+fig <- ggplot(regional.counts, aes(x=Year, y=total))
+fig <- fig + geom_point(size=1.1)
+fig <- fig + facet_wrap(~Region, scale="free")
+fig <- fig + theme_classic() 
+fig <- fig + ylab(label = "Total Regional Nest Count")
+fig <- fig + scale_x_continuous(breaks=seq(1980, 2017, 5), limits = c(1982,2017))
+fig <- fig + theme(axis.text.x = element_text(angle = 45, hjust=1))
+fig <- fig + scale_y_continuous(breaks = function(x) round(seq(from = 0,to = x[2],by = (x[2]-0)/10),0))
+fig <- fig + theme(strip.background = element_rect(colour = "white", fill = "white"))
+fig
+
+png(filename = str_c("fig.regional.counts.facet.png"), units="in", width=6.5, height=5,  res=200);print(fig); dev.off()
 
 ##PLOT EFFECTS OF COVARIATES
 ##plot effect of day
@@ -1342,3 +1357,34 @@ change.per$Years[which(str_detect(change.per$Years, "19..-2017"))]<-"All years"
 change.per<-subset(change.per, select=-`Growth rate`) %>% spread(key = Years, value = `Percent change`)
 change.per<-change.per[,c(1,4,2,3)]
 change.per
+
+##MODEL REGIONAL COUNTS
+for (j in 1:length(unique(regional.counts$Region))) {
+  region.temp<-unique(regional.counts$Region)[j]
+  dat.temp<-subset(regional.counts, Region==region.temp)
+  
+  M.temp<-gam(total ~ s(Year),
+          data = dat.temp,
+          family = poisson)
+  
+  predictions<-predict.gam(object = M.temp, newdata = dat.temp, type = "response", se.fit = T)
+  dat.temp$pred<-predictions$fit
+  dat.temp$pred.se<-predictions$se.fit
+  
+  
+}
+
+fig <- ggplot(data = dat.temp, aes(x=Year))
+fig <- fig + geom_path(aes(y=pred))
+fig <- fig + geom_path(aes(y=pred+pred.se), lty="dashed")
+fig <- fig + geom_path(aes(y=pred-pred.se), lty="dashed")
+fig <- fig + ylab("Regional count trend")
+fig <- fig + geom_point(aes(y=total))
+#fig <- fig + scale_y_continuous(breaks=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels=seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), sec.axis = sec_axis(~ ., name = "Total regional count", breaks = seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10), labels = round(seq(range[1], range[2], (range[2]-range[1])/10), 0)))
+#fig <- fig + scale_y_continuous(breaks= seq(range.pred[1], range.pred[2], (range.pred[2]-range.pred[1])/10))
+fig <- fig + ggtitle(region.temp)
+fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 2), labels=seq(1985, 2017, 2)) + theme(axis.text.x = element_text(angle = 45, hjust=1))
+#fig <- fig + scale_y_continuous(trans="log")
+fig
+
+png(filename = "fig.temp.png", units="in", width=6*1.5, height=4*1.5,  res=200);fig; dev.off()
