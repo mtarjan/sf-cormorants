@@ -117,38 +117,10 @@ Fig `r figure.num`. Map of Double-crested Cormorant nesting sites from 1984-2017
 
 
 ```{r, echo=FALSE}
-knitr::include_graphics(path="fig.Bridges.counts.colonies.png")
+knitr::include_graphics(path="fig.regional.counts.facet.png")
 figure.num<-figure.num+1
 ```
-Fig `r figure.num`. Nest counts at colonies in the Bridges region.
-
-######Page break
-```{r, echo=FALSE}
-knitr::include_graphics(path="fig.North Bay.counts.colonies.png")
-figure.num<-figure.num+1
-```
-Fig `r figure.num`. Nest counts at colonies in the North Bay region.
-
-######Page break
-```{r, echo=FALSE}
-knitr::include_graphics(path="fig.Outer Coast.counts.colonies.png")
-figure.num<-figure.num+1
-```
-Fig `r figure.num`. Nest counts at colonies in the Outer Coast region.
-
-######Page break
-```{r, echo=FALSE}
-knitr::include_graphics(path="fig.South Bay.counts.colonies.png")
-figure.num<-figure.num+1
-```
-Fig `r figure.num`. Nest counts at colonies in the South Bay region. 
-
-######Page break
-```{r, echo=FALSE}
-knitr::include_graphics(path="fig.South Farallon Islands.counts.colonies.png")
-figure.num<-figure.num+1
-```
-Fig `r figure.num`. Nest counts at colonies in the South Farallon Islands region.
+Fig `r figure.num`. Total nest counts at each regional in the San Francisco Bay Area, as well as for all regions combined.
 
 ######Page break
 ```{r, echo=FALSE}

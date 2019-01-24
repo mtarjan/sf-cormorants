@@ -1339,4 +1339,4 @@ fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 2), labels=seq(1985, 20
 #fig <- fig + scale_y_continuous(trans="log")
 fig
 
-png(filename = "fig.temp.png", units="in", width=6*1.5, height=4*1.5,  res=200);fig; dev.off()
+#png(filename = "fig.temp.png", units="in", width=6*1.5, height=4*1.5,  res=200);fig; dev.off()
