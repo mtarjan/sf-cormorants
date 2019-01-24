@@ -71,6 +71,8 @@ counts$day<-yday(counts$Survey.Date)
 ##get data for years with nearly complete data only, given Phil's designations
 #counts.complete<-subset(counts, is.na(Incomplete.year))
 
+counts.raw<-counts
+
 ##RESTRICTIONS
 ##exclude seasonal total count type
 counts<-subset(counts, Count.type != "Seasonal total" & Region != "" & Region != "NA" & Exclude.comments=="" & is.na(Count)==F)
@@ -587,6 +589,7 @@ new.dat<-data.frame(Year=rep(min(counts$Year):max(counts$Year), length(unique(co
 #for (j in 1:length(unique(counts$Colony))) {
 #  colony.temp<-unique(counts$Colony)[j]
 #  min.year<-min(subset(counts, Colony==colony.temp)$Year)
+#  max.year<-max(subset(counts, Colony==colony.temp)$Year)
 #  new.dat<-rbind(new.dat, data.frame(Colony=colony.temp, Year=min.year:max.year))
 #}
 ##make new.dat that only has years with known counts
@@ -650,6 +653,8 @@ head(counts.m8.sub)
 
 ##overwrite with initial counts.m8
 #counts.m8.sub<-counts.m8
+
+#counts.m8<-counts.m8.sub
 
 ##add normalized predictor by colony
 #counts.m8.sub$pred.norm<-rep(NA, nrow(counts.m8.sub))
@@ -721,7 +726,8 @@ counts.m8<-dplyr::left_join(counts.m8, y=edf.sum, by = c("Colony","Colony"))
 counts.m8$pred.sd<-counts.m8$pred.se*sqrt(counts.m8$edf.sum+1)
 counts.m8$pred.sd.link<-counts.m8$pred.se.link*sqrt(counts.m8$edf.sum+1)
 rep<-10000
-pred.rep<-apply(X = subset(counts.m8, select=c(pred, pred.sd)), MARGIN = 1, FUN = function(x,y,z,n) rnorm(n = n, mean=x[y], sd=x[z]), n = rep, y=1, z=2) %>% data.frame() %>% t() ##alter this to change assumption about error around model predicted estimates
+#pred.rep<-apply(X = subset(counts.m8, select=c(pred, pred.sd)), MARGIN = 1, FUN = function(x,y,z,n) rnorm(n = n, mean=x[y], sd=x[z]), n = rep, y=1, z=2) %>% data.frame() %>% t() ##alter this to change assumption about error around model predicted estimates
+pred.rep<-apply(X = subset(counts.m8, select=pred), MARGIN = 1, FUN = function(x,n) rpois(n = n, lambda =x[1]), n = rep) %>% data.frame() %>% t() ##assume poisson
 pred.rep.link<-apply(X = subset(counts.m8, select=c(pred.link, pred.sd.link)), MARGIN = 1, FUN = function(x,y,z,n) rnorm(n = n, mean=x[y], sd=x[z]), n = rep, y=1, z=2) %>% data.frame() %>% t() ##alter this to change assumption about error around model predicted estimates
 
 #pred.rep.loess<-apply(X = subset(counts.loess, select=c(pred, se.upper, se.lower)), MARGIN=1, FUN = function (x,n) runif(n = n, min = x[3], max=x[2]), n=rep)
@@ -898,7 +904,8 @@ for (j in 1:length(unique(regional.pred$Region))) {
     ##plot the colony predictions with SE
     data.plot<-subset(counts.m8.sub, Region==region.temp)
     fig <- ggplot(data = data.plot, aes(x=Year))
-    fig <- fig + geom_path(aes(y=pred.link)) + geom_path(aes(y=pred.link+pred.se.link), lty="dashed") + geom_path(aes(y=pred.link-pred.se.link), lty="dashed")
+    #fig <- fig + geom_path(aes(y=pred.link)) + geom_path(aes(y=pred.link+pred.se.link), lty="dashed") + geom_path(aes(y=pred.link-pred.se.link), lty="dashed")
+    fig <- fig + geom_path(aes(y=pred)) + geom_path(aes(y=pred+pred.se), lty="dashed") + geom_path(aes(y=pred-pred.se), lty="dashed")
     fig <- fig + ylab("Trend")
     fig <- fig + ggtitle(region.temp)
     fig <- fig + facet_wrap(~Colony, scales = "free_y")
@@ -958,7 +965,7 @@ for (j in 1:length(unique(regional.pred$Region))) {
 ##plot as facets
 fig <- ggplot(dat.plot, aes(x=Year, y=pred.regional))
 fig <- fig + geom_path(size=1.1)
-#fig <- fig + geom_path(aes(y=r.pred.mean+r.pred.sd), lty="dashed") + geom_path(aes(y=r.pred.mean-r.pred.sd), lty="dashed") ##add error
+fig <- fig + geom_path(aes(y=r.pred.mean+r.pred.sd), lty="dashed") + geom_path(aes(y=r.pred.mean-r.pred.sd), lty="dashed") ##add error
 fig <- fig + facet_wrap(~Region, scale="free_y")
 fig <- fig + theme_classic() 
 fig <- fig + ylab(label = "Count Trend")
@@ -1068,7 +1075,7 @@ fig
 png(filename = str_c("fig.type.effect.png"), units="in", width=4, height=3.5,  res=200);print(fig); dev.off()
 
 ##plot effect of survey type
-data.temp<-subset(counts, select=c(Colony, Year, Count, Survey.type), subset= Colony=="South Farallon Islands")
+data.temp<-subset(counts.raw, select=c(Colony, Year, Count, Survey.type), subset= Colony=="South Farallon Islands")
 data.temp<- data.temp %>% spread(key = Survey.type, value = Count) %>% data.frame()
 
 data.temp<-subset(data.temp, select=c(Aerial, Ground))
@@ -1340,3 +1347,5 @@ fig <- fig + scale_x_continuous(breaks = seq(1985, 2017, 2), labels=seq(1985, 20
 fig
 
 #png(filename = "fig.temp.png", units="in", width=6*1.5, height=4*1.5,  res=200);fig; dev.off()
+
+change.tab
