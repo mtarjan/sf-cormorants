@@ -1,9 +1,7 @@
 ##DCCO analysis
-##June 2, 2017
+##January 23, 2019
 ##Prepared by Max Tarjan
 ##mtarjan@sfbbo.org
-
-####SEE LINE 585 FOR CURRENT WORK WITH PLOTTING GAMs
 
 
 ##load required packages
@@ -73,12 +71,9 @@ counts$day<-yday(counts$Survey.Date)
 ##get data for years with nearly complete data only, given Phil's designations
 #counts.complete<-subset(counts, is.na(Incomplete.year))
 
-counts.raw<-subset(counts, Count.type != "Seasonal total" & Region != "" & Region != "NA")
-
 ##RESTRICTIONS
 ##exclude seasonal total count type
-counts<-subset(counts.raw, Count.type != "Seasonal total" & Region != "" & Region != "NA" & Exclude.comments=="" & is.na(Count)==F)
-#counts<-subset(counts, Count.type != "Seasonal total" & Region != "" & Region != "NA")
+counts<-subset(counts, Count.type != "Seasonal total" & Region != "" & Region != "NA" & Exclude.comments=="" & is.na(Count)==F)
 
 ##add average count day if the day is missing
 counts$day[which(is.na(counts$day))]<-round(mean(counts$day, na.rm=T), 0)
@@ -99,9 +94,9 @@ ms.table1<-data.frame(count(x=unique(subset(counts, select=c(Region, Colony, lat
 #                    maptype = "satellite",
 #                    zoom=11)
 
-fig1<-ggplot(data = counts, aes(x = Year, y=Count, color=Colony)) + geom_point()
-fig1 <- fig1 + geom_smooth(method="lm", se = F, aes(linetype = Region))
-fig1 <- fig1 + ylab("Number of DCCO nests")
+#fig1<-ggplot(data = counts, aes(x = Year, y=Count, color=Colony)) + geom_point()
+#fig1 <- fig1 + geom_smooth(method="lm", se = F, aes(linetype = Region))
+#fig1 <- fig1 + ylab("Number of DCCO nests")
 #fig1
 
 ##colors for bar plots
@@ -493,56 +488,13 @@ M2<-gam(Count ~ s(Year, by=Colony) + Colony + Survey.type,
         data = counts,
         family = poisson)
 
-#M3<-gam(Count ~ s(Year) + Colony + Survey.type,
-#        data = counts,
-#        family = poisson)
-
-#M4<-gam(Count ~ s(Year) + Colony + day + Survey.type,
-#        data = counts,
-#        family = poisson)
-
-#M5<-gam(Count ~ s(Year) + Colony + day + time.period,
-#        data = counts,
-#        family = poisson)
-
-##interactions; allow for separate trends for each site
-#M6<-gam(Count ~ s(Year, by=Colony) + Colony,
-#        data = counts,
-#        family = poisson)
-
-#M7<-gam(Count ~ s(Year, by=Colony) + Colony + day,
-#        data = counts,
-#        family = poisson)
-
-#M8<-gam(Count ~ s(Year, by=Colony) + Colony + Survey.type,
-#        data = counts,
-#        family = poisson)
-
-#M9<-gam(Count ~ s(Year, by=Colony) + day + Survey.type,
-#        data = counts,
-#        family = poisson)
-
-#M9<-gam(Count ~ s(Year, by=Colony) + Colony + day + time.period,
-#        data = counts,
-#        family = poisson)
-
-#M10<-gam(Count ~ s(Year, by=Colony) + Colony + day + Survey.type,
-#        data = counts,
-#        family = poisson)
-
 M3<-gam(Count ~ s(Year, by=Colony) + Colony + s(day) + Survey.type,
         data = counts,
         family = poisson)
 
-#aic.results<-AIC(M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12)
-#round(aic.results, 0)
 AIC(M0, M1, M2, M3)
 ##look for lowest AIC
 
-##quasi models to deal with overdispersion
-#M1q<-gam(Count ~ s(Year, by=Colony) + s(day),
-#         data = counts,
-#         family = quasipoisson)
 
 ##TABLE TO COMPARE MODEL FIT
 model.fit<-round(AIC(M0, M1, M2, M3),0)
