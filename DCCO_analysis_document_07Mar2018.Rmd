@@ -109,7 +109,7 @@ knitr::kable(change.per, row.names = F)
 
 #Figures
 ```{r, echo=FALSE}
-knitr::include_graphics(path="C:/Users/max/Desktop/Tarjan/Science/GIS/DCCO_GIS/DCCO_sites_map_15May2018.png")
+knitr::include_graphics(path="C:/Users/max/Desktop/Tarjan/Science/GIS/DCCO_GIS/DCCO_sites_map_23Jul2018.png")
 
 figure.num<-figure.num+1
 ```
@@ -128,13 +128,6 @@ knitr::include_graphics(path="fig.regional.trends.facet.freey.png")
 figure.num<-figure.num+1
 ```
 Fig `r figure.num`. Linear predictor GAM trends of Double-crested Cormorant nest counts for each region in San Francisco Bay.
-
-######Page break
-```{r, echo=FALSE}
-knitr::include_graphics(path="fig.SF.trend.png")
-figure.num<-figure.num+1
-```
-Fig `r figure.num`. GAM trend of Double-crested Cormornat nest counts for all San Francisco Bay colonies.
 
 ######Page break
 ```{r, echo=FALSE}
@@ -166,7 +159,7 @@ Table of annual percent change in model trend estimates for each region. -->
 
 #Appendix II
 Plot comparing aerial to ground counts at the South Farallon Islands. Counts in this region differ based on survey type. If aerial counts are obtained, ground counts can be approximated by multiplying the aerial count by 0.3 and adding 50.
-```{r, echo=FALSE, fig.height=5, fig.width=6.5}
+```{r, echo=FALSE, warning=FALSE, fig.height=5, fig.width=6.5}
 print(SFI.methods.fig)
 ```
 Figure A1. Comparison of aerial and ground counts at the South Farallon Islands. The solid line shows a linear model with the equation and R2 values displaying in the upper left corner of the plot. The dashed line shows the expected 1:1 relationship under the null assumption that counts are similar for every survey type.

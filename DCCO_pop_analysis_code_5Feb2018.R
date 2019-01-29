@@ -726,8 +726,8 @@ counts.m8<-dplyr::left_join(counts.m8, y=edf.sum, by = c("Colony","Colony"))
 counts.m8$pred.sd<-counts.m8$pred.se*sqrt(counts.m8$edf.sum+1)
 counts.m8$pred.sd.link<-counts.m8$pred.se.link*sqrt(counts.m8$edf.sum+1)
 rep<-10000
-#pred.rep<-apply(X = subset(counts.m8, select=c(pred, pred.sd)), MARGIN = 1, FUN = function(x,y,z,n) rnorm(n = n, mean=x[y], sd=x[z]), n = rep, y=1, z=2) %>% data.frame() %>% t() ##alter this to change assumption about error around model predicted estimates
-pred.rep<-apply(X = subset(counts.m8, select=pred), MARGIN = 1, FUN = function(x,n) rpois(n = n, lambda =x[1]), n = rep) %>% data.frame() %>% t() ##assume poisson
+pred.rep<-apply(X = subset(counts.m8, select=c(pred, pred.sd)), MARGIN = 1, FUN = function(x,y,z,n) rnorm(n = n, mean=x[y], sd=x[z]), n = rep, y=1, z=2) %>% data.frame() %>% t() ##alter this to change assumption about error around model predicted estimates
+#pred.rep<-apply(X = subset(counts.m8, select=pred), MARGIN = 1, FUN = function(x,n) rpois(n = n, lambda =x[1]), n = rep) %>% data.frame() %>% t() ##assume poisson
 pred.rep.link<-apply(X = subset(counts.m8, select=c(pred.link, pred.sd.link)), MARGIN = 1, FUN = function(x,y,z,n) rnorm(n = n, mean=x[y], sd=x[z]), n = rep, y=1, z=2) %>% data.frame() %>% t() ##alter this to change assumption about error around model predicted estimates
 
 #pred.rep.loess<-apply(X = subset(counts.loess, select=c(pred, se.upper, se.lower)), MARGIN=1, FUN = function (x,n) runif(n = n, min = x[3], max=x[2]), n=rep)
@@ -981,7 +981,7 @@ png(filename = str_c("fig.regional.trends.facet.png"), units="in", width=6.5, he
 fig <- ggplot(dat.plot, aes(x=Year, y=pred.regional.link))
 fig <- fig + geom_path(size=1.1)
 fig <- fig + geom_path(aes(y=r.pred.mean.link+r.pred.sd.link), lty="dashed") + geom_path(aes(y=r.pred.mean.link-r.pred.sd.link), lty="dashed") ##add error
-fig <- fig + facet_wrap(~Region, scale="free_y")
+fig <- fig + facet_wrap(~Region, scale="free")
 fig <- fig + theme_classic() 
 fig <- fig + ylab(label = "Trend")
 fig <- fig + scale_x_continuous(breaks=seq(1980, 2017, 5), limits = c(1982,2017))
@@ -991,7 +991,7 @@ fig <- fig + scale_y_continuous(breaks = function(x) round(seq(from = x[1],to = 
 fig <- fig + theme(strip.background = element_rect(colour = "white", fill = "white"))
 fig
 
-png(filename = str_c("fig.regional.trends.facet.zoom.png"), units="in", width=6.5, height=5,  res=200);print(fig); dev.off()
+png(filename = str_c("fig.regional.trends.facet.freey.png"), units="in", width=6.5, height=5,  res=200);print(fig); dev.off()
 
 ##plot with overlap
 #fig <- ggplot(dat.plot, aes(x=Year, y=pred.regional, color=Region))
@@ -1005,7 +1005,9 @@ png(filename = str_c("fig.regional.trends.facet.zoom.png"), units="in", width=6.
 #png(filename = str_c("fig.regional.trends.overlap.png"), units="in", width=6.5, height=6.5,  res=200);print(fig); dev.off()
 
 ##PLOT REGIONAL COUNTS
-fig <- ggplot(regional.counts, aes(x=Year, y=total))
+#fig <- ggplot(regional.counts, aes(x=Year, y=total))
+#fig <- ggplot(regional.pred, aes(x=Year, y=total))
+fig <- ggplot(subset(counts.m8, is.na(Count)==F) %>% group_by(Region, Year) %>% summarise(total=sum(Count)) %>% data.frame(), aes(x=Year, y=total))
 fig <- fig + geom_point(size=1.1)
 fig <- fig + facet_wrap(~Region, scale="free")
 fig <- fig + theme_classic() 
