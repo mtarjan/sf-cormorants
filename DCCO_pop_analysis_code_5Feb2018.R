@@ -12,6 +12,7 @@ library(stringr)
 library(gdata) ##required for read.xls
 library(BBmisc) ##required for normalize function
 library(lubridate)
+library(MuMIn) ##needed for AICc
 
 
 ##load DCCO nest counts
@@ -494,16 +495,23 @@ M3<-gam(Count ~ s(Year, by=Colony) + Colony + s(day) + Survey.type,
         data = counts,
         family = poisson)
 
-AIC(M0, M1, M2, M3)
+
+
+MuMIn::AICc(M0, M1, M2, M3)
 ##look for lowest AIC
 
 
 ##TABLE TO COMPARE MODEL FIT
-model.fit<-round(AIC(M0, M1, M2, M3),0)
+#model.fit<-round(AIC(M0, M1, M2, M3),0)
+##do delta AICc instead
+##AIC scores are often shown as ∆AIC scores, or difference between the best model (smallest AIC) and each model (so the best model has a ∆AIC of zero).
+model.fit<-MuMIn::AICc(M0, M1, M2, M3)
+model.fit$deltaAICc<-round(model.fit$AICc-min(model.fit$AICc),0)
 model.fit$Model<-c(M0$formula, M1$formula, M2$formula, M3$formula)
 model.fit$UBRE<-round(c(summary(M0)$sp.criterion, summary(M1)$sp.criterion, summary(M2)$sp.criterion, summary(M3)$sp.criterion),3)
 model.fit$deviance.explained<-round(c(summary(M0)$dev.expl, summary(M1)$dev.expl, summary(M2)$dev.expl, summary(M3)$dev.expl),3)
-model.fit<-subset(model.fit, select=c(Model, df, AIC, UBRE, deviance.explained))
+model.fit<-subset(model.fit, select=c(Model, df, deltaAICc, UBRE, deviance.explained))
+model.fit<-model.fit[order(model.fit$deltaAICc),]
 
 ##SELECT MODEL TO PLOT
 model.plot<-M3
