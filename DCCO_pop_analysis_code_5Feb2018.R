@@ -993,7 +993,7 @@ fig <- fig + facet_wrap(~Region, scale="free")
 fig <- fig + theme_classic() 
 fig <- fig + ylab(label = "Trend")
 fig <- fig + scale_x_continuous(breaks=seq(1980, 2017, 5), limits = c(1982,2017))
-fig <- fig + theme(axis.text.x = element_text(angle = 45, hjust=1))
+fig <- fig + theme(axis.text.x = element_text(angle = 45, hjust=1, color="black"), axis.text.y = element_text(color="black"))
 #fig <- fig + scale_y_continuous(breaks= round(seq(min(dat.plot$pred.regional),max(dat.plot$pred.regional),max(dat.plot$pred.regional)/10),0))
 fig <- fig + scale_y_continuous(breaks = function(x) round(seq(from = x[1],to = x[2],by = (x[2]-x[1])/10),2))
 fig <- fig + theme(strip.background = element_rect(colour = "white", fill = "white"))
@@ -1021,7 +1021,7 @@ fig <- fig + facet_wrap(~Region, scale="free")
 fig <- fig + theme_classic() 
 fig <- fig + ylab(label = "Total Regional Nest Count")
 fig <- fig + scale_x_continuous(breaks=seq(1980, 2017, 5), limits = c(1982,2017))
-fig <- fig + theme(axis.text.x = element_text(angle = 45, hjust=1))
+fig <- fig + theme(axis.text.x = element_text(angle = 45, hjust=1, color="black"), axis.text.y = element_text(color="black"))
 fig <- fig + scale_y_continuous(breaks = function(x) round(seq(from = 0,to = x[2],by = (x[2]-0)/10),0))
 fig <- fig + theme(strip.background = element_rect(colour = "white", fill = "white"))
 fig
@@ -1048,7 +1048,7 @@ fig <- fig + xlab("Count date (i.e. day of year)")
 fig <- fig + theme_classic()
 fig <- fig + scale_x_continuous(breaks=seq(0,300, 10))
 fig <- fig + scale_y_continuous(breaks=seq(0,6,0.25))
-fig <- fig + theme(axis.text.x = element_text(angle = 45, hjust=1))
+fig <- fig + theme(axis.text.x = element_text(angle = 45, hjust=1, color="black"), axis.text.y = element_text(color="black"))
 fig
 
 png(filename = str_c("fig.day.effect.png"), units="in", width=4, height=3.5,  res=200);print(fig); dev.off()
@@ -1099,15 +1099,17 @@ equation<-str_c(" y = ", slope, "x + ", intercept, "\n ", "R2", " = ", r2)
 
 fig <- ggplot(data=data.temp, aes(x=Aerial, y=Ground))
 fig <- fig + geom_point(size=2)
-fig <- fig + geom_smooth(method = "lm", se = F)
+fig <- fig + geom_smooth(method = "lm", se = F, color="black")
 fig <- fig + geom_abline(slope = 1, intercept = 0, lty="dashed")
 fig <- fig + theme_classic() + xlab("Aerial count") + ylab("Ground count")
 fig <- fig + geom_text(aes(x=-Inf, y=Inf, hjust=0, vjust=1, label=equation))
 fig <- fig + scale_x_continuous(breaks = function(x) round(seq(from = x[1], to = x[2], by = (x[2]-x[1])/10),0))
 fig <- fig + scale_y_continuous(breaks = function(x) round(seq(from = x[1], to = x[2], by = (x[2]-x[1])/10),0))
-fig <- fig + theme(text = element_text(size=14))
+fig <- fig + theme(text = element_text(size=14), axis.text = element_text(color="black"))
 fig
 SFI.methods.fig<-fig
+
+png(filename = str_c("fig.SFI.methods.png"), units="in", width=4, height=3.5,  res=200);print(fig); dev.off()
 
 ##GET REGIONAL TREND FOR ALL REGIONS
 #counts.sf<-subset(counts.m8, select=c(Colony, Year, Region, pred, pred.se, Count)) ##decide if want to include bridges or not at this step
