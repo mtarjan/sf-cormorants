@@ -1105,11 +1105,12 @@ fig <- fig + theme_classic() + xlab("Aerial count") + ylab("Ground count")
 fig <- fig + geom_text(aes(x=-Inf, y=Inf, hjust=0, vjust=1, label=equation))
 fig <- fig + scale_x_continuous(breaks = function(x) round(seq(from = x[1], to = x[2], by = (x[2]-x[1])/10),0))
 fig <- fig + scale_y_continuous(breaks = function(x) round(seq(from = x[1], to = x[2], by = (x[2]-x[1])/10),0))
-fig <- fig + theme(text = element_text(size=14), axis.text = element_text(color="black"))
+fig <- fig + theme(text = element_text(size=12), axis.text = element_text(color="black"))
+fig <- fig + theme(plot.margin=unit(c(0.75, 0.75, 0.75, 0.75),"cm"))
 fig
 SFI.methods.fig<-fig
 
-png(filename = str_c("fig.SFI.methods.png"), units="in", width=4, height=3.5,  res=200);print(fig); dev.off()
+png(filename = str_c("fig.SFI.methods.png"), units="in", width=5, height=4,  res=200);print(fig); dev.off()
 
 ##GET REGIONAL TREND FOR ALL REGIONS
 #counts.sf<-subset(counts.m8, select=c(Colony, Year, Region, pred, pred.se, Count)) ##decide if want to include bridges or not at this step
