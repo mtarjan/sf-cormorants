@@ -968,6 +968,15 @@ for (j in 1:length(unique(regional.pred$Region))) {
   dat.plot<-rbind(dat.plot, dat.temp)
 }
 
+region_names <- c(
+  `North Bay` = "North Bay",
+  `South Bay` = "South Bay",
+  `South Farallon Islands` = "South Farallon Islands",
+  `Bridges` = "Bridges",
+  `Outer Coast` = "Outer Coast"
+  `San Francisco Bay` = "San Francisco Bay Area Total"
+)
+
 #dat.plot<-subset(regional.pred.loess, Region=="Outer Coast")
 
 ##plot as facets
@@ -989,7 +998,7 @@ png(filename = str_c("fig.regional.trends.facet.png"), units="in", width=6.5, he
 fig <- ggplot(dat.plot, aes(x=Year, y=pred.regional.link))
 fig <- fig + geom_path(size=1.1)
 fig <- fig + geom_path(aes(y=r.pred.mean.link+r.pred.sd.link), lty="dashed") + geom_path(aes(y=r.pred.mean.link-r.pred.sd.link), lty="dashed") ##add error
-fig <- fig + facet_wrap(~Region, scale="free")
+fig <- fig + facet_wrap(~Region, scale="free", labeller = as_labeller(region_names))
 fig <- fig + theme_classic() 
 fig <- fig + ylab(label = "Trend")
 fig <- fig + scale_x_continuous(breaks=seq(1980, 2017, 5), limits = c(1982,2017))
