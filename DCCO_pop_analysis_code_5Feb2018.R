@@ -973,8 +973,8 @@ region_names <- c(
   `South Bay` = "South Bay",
   `South Farallon Islands` = "South Farallon Islands",
   `Bridges` = "Bridges",
-  `Outer Coast` = "Outer Coast"
-  `San Francisco Bay` = "San Francisco Bay Area Total"
+  `Outer Coast` = "Outer Coast",
+  `San Francisco Bay` = "San Francisco \n Bay Area Total"
 )
 
 #dat.plot<-subset(regional.pred.loess, Region=="Outer Coast")
@@ -1026,7 +1026,7 @@ png(filename = str_c("fig.regional.trends.facet.freey.png"), units="in", width=6
 #fig <- ggplot(regional.pred, aes(x=Year, y=total))
 fig <- ggplot(subset(counts.m8, is.na(Count)==F) %>% group_by(Region, Year) %>% summarise(total=sum(Count)) %>% data.frame(), aes(x=Year, y=total))
 fig <- fig + geom_point(size=1.1)
-fig <- fig + facet_wrap(~Region, scale="free")
+fig <- fig + facet_wrap(~Region, scale="free", labeller = as_labeller(region_names))
 fig <- fig + theme_classic() 
 fig <- fig + ylab(label = "Total Regional Nest Count")
 fig <- fig + scale_x_continuous(breaks=seq(1980, 2017, 5), limits = c(1982,2017))
