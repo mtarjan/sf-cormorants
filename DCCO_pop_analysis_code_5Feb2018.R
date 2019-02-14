@@ -1002,13 +1002,14 @@ fig <- fig + facet_wrap(~Region, scale="free", labeller = as_labeller(region_nam
 fig <- fig + theme_classic() 
 fig <- fig + ylab(label = "Trend")
 fig <- fig + scale_x_continuous(breaks=seq(1980, 2017, 5), limits = c(1982,2017))
-fig <- fig + theme(axis.text.x = element_text(angle = 45, hjust=1, color="black"), axis.text.y = element_text(color="black"))
+fig <- fig + theme(axis.text.x = element_text(angle = 45, hjust=1, color="black", face = "bold"), axis.text.y = element_text(color="black", face="bold"))
+fig <- fig + theme(axis.title = element_text(color="black", face="bold"), strip.text = element_text(face="bold"))
 #fig <- fig + scale_y_continuous(breaks= round(seq(min(dat.plot$pred.regional),max(dat.plot$pred.regional),max(dat.plot$pred.regional)/10),0))
 fig <- fig + scale_y_continuous(breaks = function(x) round(seq(from = x[1],to = x[2],by = (x[2]-x[1])/10),2))
 fig <- fig + theme(strip.background = element_rect(colour = "white", fill = "white"))
 fig
 
-png(filename = str_c("fig.regional.trends.facet.freey.png"), units="in", width=6.5, height=5,  res=200);print(fig); dev.off()
+png(filename = str_c("fig8.regional.trends.facet.png"), units="in", width=6.5, height=5,  res=200);print(fig); dev.off()
 
 ##plot with overlap
 #fig <- ggplot(dat.plot, aes(x=Year, y=pred.regional, color=Region))
@@ -1030,12 +1031,13 @@ fig <- fig + facet_wrap(~Region, scale="free", labeller = as_labeller(region_nam
 fig <- fig + theme_classic() 
 fig <- fig + ylab(label = "Total Regional Nest Count")
 fig <- fig + scale_x_continuous(breaks=seq(1980, 2017, 5), limits = c(1982,2017))
-fig <- fig + theme(axis.text.x = element_text(angle = 45, hjust=1, color="black"), axis.text.y = element_text(color="black"))
+fig <- fig + theme(axis.text.x = element_text(angle = 45, hjust=1, color="black", face="bold"), axis.text.y = element_text(color="black", face="bold"))
 fig <- fig + scale_y_continuous(breaks = function(x) round(seq(from = 0,to = x[2],by = (x[2]-0)/10),0))
 fig <- fig + theme(strip.background = element_rect(colour = "white", fill = "white"))
+fig <- fig + theme(axis.title = element_text(color="black", face="bold"), strip.text = element_text(face="bold"))
 fig
 
-png(filename = str_c("fig.regional.counts.facet.png"), units="in", width=6.5, height=5,  res=200);print(fig); dev.off()
+png(filename = str_c("fig7.regional.counts.facet.png"), units="in", width=6.5, height=5,  res=200);print(fig); dev.off()
 
 ##PLOT EFFECTS OF COVARIATES
 ##plot effect of day
@@ -1057,10 +1059,11 @@ fig <- fig + xlab("Count date (i.e. day of year)")
 fig <- fig + theme_classic()
 fig <- fig + scale_x_continuous(breaks=seq(0,300, 10))
 fig <- fig + scale_y_continuous(breaks=seq(0,6,0.25))
-fig <- fig + theme(axis.text.x = element_text(angle = 45, hjust=1, color="black"), axis.text.y = element_text(color="black"))
+fig <- fig + theme(axis.text.x = element_text(angle = 45, hjust=1, color="black", face="bold"), axis.text.y = element_text(color="black", face="bold"))
+fig <- fig + theme(axis.title = element_text(color="black", face="bold"))
 fig
 
-png(filename = str_c("fig.day.effect.png"), units="in", width=4, height=3.5,  res=200);print(fig); dev.off()
+png(filename = str_c("fig6.day.effect.png"), units="in", width=4, height=3.5,  res=200);print(fig); dev.off()
 
 ##effect of count date on counts
 #plot(Count~day, data=counts); abline(a= coefficients(lm(Count~day, data=counts))[1], b= coefficients(lm(Count~day, data=counts))[2])
@@ -1114,12 +1117,13 @@ fig <- fig + theme_classic() + xlab("Aerial count") + ylab("Ground count")
 fig <- fig + geom_text(aes(x=-Inf, y=Inf, hjust=0, vjust=1, label=equation))
 fig <- fig + scale_x_continuous(breaks = function(x) round(seq(from = x[1], to = x[2], by = (x[2]-x[1])/10),0))
 fig <- fig + scale_y_continuous(breaks = function(x) round(seq(from = x[1], to = x[2], by = (x[2]-x[1])/10),0))
-fig <- fig + theme(text = element_text(size=12), axis.text = element_text(color="black"))
+fig <- fig + theme(text = element_text(size=12), axis.text = element_text(color="black", face="bold"))
 fig <- fig + theme(plot.margin=unit(c(0.75, 0.75, 0.75, 0.75),"cm"))
+fig <- fig + theme(axis.title = element_text(color="black", face="bold"))
 fig
 SFI.methods.fig<-fig
 
-png(filename = str_c("fig.SFI.methods.png"), units="in", width=5, height=4,  res=200);print(fig); dev.off()
+png(filename = str_c("fig9.SFI.methods.png"), units="in", width=5, height=4,  res=200);print(fig); dev.off()
 
 ##GET REGIONAL TREND FOR ALL REGIONS
 #counts.sf<-subset(counts.m8, select=c(Colony, Year, Region, pred, pred.se, Count)) ##decide if want to include bridges or not at this step
